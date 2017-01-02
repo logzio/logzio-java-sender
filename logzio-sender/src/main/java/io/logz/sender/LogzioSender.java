@@ -57,11 +57,11 @@ public class LogzioSender {
                          int gcPersistedQueueFilesIntervalSeconds)
             throws IllegalArgumentException {
 
-        this.logzioToken = getValueFromSystemEnvironmentIfNeeded(logzioToken);
+        this.logzioToken = logzioToken;
         this.logzioType = logzioType;
         this.drainTimeout = drainTimeout;
         this.fsPercentThreshold = fsPercentThreshold;
-        this.logzioUrl = getValueFromSystemEnvironmentIfNeeded(logzioUrl);
+        this.logzioUrl = logzioUrl;
         this.socketTimeout = socketTimeout;
         this.connectTimeout = connectTimeout;
         this.debug = debug;
@@ -72,7 +72,7 @@ public class LogzioSender {
             dontCheckEnoughDiskSpace = true;
         }
 
-        logsBuffer = new BigQueue(bufferDir, "logzio-logback-appender");
+        logsBuffer = new BigQueue(bufferDir, "logzio-java-sender");
         queueDirectory = new File(bufferDir);
 
 
@@ -91,16 +91,32 @@ public class LogzioSender {
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, String bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) {
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws IOException {
 
-        // We want one buffer per appender. And the only thing that should be different between appenders, is a type.
+        // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
-        // I don't want to force users to configure anything else, but to use the already configured appender.
-        // BUT - users not always understand the notion of types at first, and can define multiple appenders on the same type - and this is what I want to protect by this factory.
+        // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
         LogzioSender logzioSenderInstance = logzioSenderInstances.get(logzioType);
-
         if (logzioSenderInstance == null) {
+            if (bufferDir != null) {
 
+                bufferDir += "/" + logzioType;
+                File bufferFile = new File(bufferDir);
+                if (bufferFile.exists()) {
+
+                    if (!bufferFile.canWrite()) {
+                        reporter.error("We cant write to your bufferDir location: " + bufferFile.getAbsolutePath());
+                        throw new IOException("Can't write to bufferDir location: "+bufferFile.getAbsolutePath());
+                    }
+                } else {
+                    if (!bufferFile.mkdirs()) {
+                        reporter.error("Can't create bufferDir location: " + bufferFile.getAbsolutePath());
+                        throw new IOException("Can't create bufferDir location: "+bufferFile.getAbsolutePath());
+                    }
+                }
+            } else {
+                bufferDir = System.getProperty("java.io.tmpdir") + "/logzio-sender-buffer/" + logzioType;
+            }
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
                     tasksExecutor, gcPersistedQueueFilesIntervalSeconds);
@@ -350,14 +366,5 @@ public class LogzioSender {
             reporter.info("DEBUG: " + message, e);
         }
     }
-
-    String getValueFromSystemEnvironmentIfNeeded(String value) {
-        if (value.startsWith("$")) {
-            return System.getenv(value.replace("$", ""));
-        }
-        return value;
-    }
-
-
 
 }

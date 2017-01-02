@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.assertj.core.api.Assertions;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -16,16 +17,22 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.BindException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class MockLogzioBulkListener implements Closeable {
-   private final static Logger logger = LoggerFactory.getLogger(MockLogzioBulkListener.class);
+    private final static Logger logger = LoggerFactory.getLogger(MockLogzioBulkListener.class);
+    public static final String LISTENER_ADDRESS = "localhost";
 
     private Server server;
     private Queue<LogRequest> logRequests = new ConcurrentLinkedQueue<>();
@@ -46,9 +53,9 @@ public class MockLogzioBulkListener implements Closeable {
         this.timeoutMillis = timeoutMillis;
     }
 
-    public MockLogzioBulkListener(String host, int port) {
-        this.host = host;
-        this.port = port;
+    public MockLogzioBulkListener() throws IOException {
+        this.host = LISTENER_ADDRESS;
+        this.port = findFreePort();
         server = new Server(new InetSocketAddress(host, port));
         server.setHandler(new AbstractHandler() {
             @Override
@@ -67,7 +74,6 @@ public class MockLogzioBulkListener implements Closeable {
                         // swallow
                     }
                 }
-
                 // Bulks are \n delimited, so handling each log separately
 
                 request.getReader().lines().forEach(line -> {
@@ -92,6 +98,28 @@ public class MockLogzioBulkListener implements Closeable {
         logger.info("Created a mock listener ("+this+")");
     }
 
+     private int findFreePort() throws IOException {
+         int attempts = 1;
+         int port = -1;
+         while (attempts <= 3) {
+             int availablePort = -1;
+             try {
+                 ServerSocket serverSocket = new ServerSocket(0);
+                 serverSocket.close();
+                 availablePort = serverSocket.getLocalPort();
+                 port = availablePort;
+                 break;
+             } catch (BindException e) {
+                 if (attempts++ == 3) {
+                     throw new RuntimeException("Failed to get a non busy port: "+availablePort, e);
+                 } else {
+                     logger.info("Failed to start mock listener on port {}", availablePort);
+                 }
+             }
+         }
+         return port;
+     }
+
     public void start() throws Exception {
         logger.info("Starting MockLogzioBulkListener");
         server.start();
@@ -112,6 +140,7 @@ public class MockLogzioBulkListener implements Closeable {
     }
 
     public void stop() {
+        logger.info("Stopping MockLogzioBulkListener");
         try {
             server.stop();
         } catch (Exception e) {
@@ -140,6 +169,10 @@ public class MockLogzioBulkListener implements Closeable {
 
     public Collection<LogRequest> getReceivedMsgs() {
         return Collections.unmodifiableCollection(logRequests);
+    }
+
+    public int getPort() {
+        return port;
     }
 
     public static class LogRequest {
@@ -216,5 +249,53 @@ public class MockLogzioBulkListener implements Closeable {
 
     public int getNumberOfReceivedLogs() {
         return logRequests.size();
+    }
+
+    public MockLogzioBulkListener.LogRequest assertLogReceivedByMessage(String message) {
+        Optional<MockLogzioBulkListener.LogRequest> logRequest = getLogByMessageField(message);
+        assertThat(logRequest.isPresent()).describedAs("Log with message '"+message+"' received").isTrue();
+        return logRequest.get();
+    }
+    
+
+    public void sleepSeconds(int seconds) {
+        logger.info("Sleeping {} [sec]...", seconds);
+        try {
+            Thread.sleep(seconds * 1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String random(int numberOfChars) {
+        return UUID.randomUUID().toString().substring(0, numberOfChars-1);
+    }
+
+    public void assertNumberOfReceivedMsgs(int count) {
+        Assertions.assertThat(getNumberOfReceivedLogs())
+                .describedAs("Messages on mock listener: {}", getReceivedMsgs())
+                .isEqualTo(count);
+    }
+
+    public void assertLogReceivedIs(String message, String token, String type, String loggerName, String level) {
+        MockLogzioBulkListener.LogRequest log = assertLogReceivedByMessage(message);
+        assertLogReceivedIs(log, token, type, loggerName, level);
+    }
+
+    public void assertLogReceivedIs(MockLogzioBulkListener.LogRequest log, String token, String type, String loggerName, String level) {
+        Assertions.assertThat(log.getToken()).isEqualTo(token);
+        Assertions.assertThat(log.getType()).isEqualTo(type);
+        Assertions.assertThat(log.getLogger()).isEqualTo(loggerName);
+        Assertions.assertThat(log.getLogLevel()).isEqualTo(level);
+    }
+
+    public void assertAdditionalFields(MockLogzioBulkListener.LogRequest logRequest, Map<String, String> additionalFields) {
+        additionalFields.forEach((field, value) -> {
+            String fieldValueInLog = logRequest.getStringFieldOrNull(field);
+            assertThat(fieldValueInLog)
+                    .describedAs("Field '{}' in Log [{}]", field, logRequest.getJsonObject().toString())
+                    .isNotNull()
+                    .isEqualTo(value);
+        });
     }
 }

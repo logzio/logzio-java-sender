@@ -1,33 +1,65 @@
-package io.logz.test;
+package io.logz.sender;
 
+import io.logz.test.MockLogzioBulkListener;
+import io.logz.test.TestEnvironment;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static io.logz.test.MockLogzioBulkListener.LISTENER_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class LongRunningTests extends BaseTest {
+/**
+ * Created by MarinaRazumovsky on 27/12/2016.
+ */
+public class LogzioLongRunningTests {
 
-    private final static Logger logger = LoggerFactory.getLogger(LongRunningTests.class);
+    private final static Logger logger = LoggerFactory.getLogger(LogzioLongRunningTests.class);
+    protected MockLogzioBulkListener mockListener;
+
+    @Before
+    public void startMockListener() throws Exception {
+        mockListener = new MockLogzioBulkListener();
+        mockListener.start();
+
+    }
+
+    @After
+    public void stopMockListener() {
+        mockListener.stop();
+    }
+
+    public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout, int gcInterval, int port) throws Exception {
+
+        File tempDir = TestEnvironment.createTempDirectory();
+        tempDir.deleteOnExit();
+        String bufferDir = tempDir.getAbsolutePath();
+        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout, 98, bufferDir,
+                "http://" + LISTENER_ADDRESS + ":" + port, 10*1000, 10*1000, true, new LogzioTestSenderUtil.StatusReporter(logger), Executors.newScheduledThreadPool(2),gcInterval);
+        sender.start();
+        return sender;
+    }
 
     @Test
-    public void testDeadLock() throws InterruptedException {
+    public void testDeadLock() throws Exception {
         String token = "aBcDeFgHiJkLmNoPqRsU";
         String type = "awesomeType";
         String loggerName = "deadlockLogger";
         int drainTimeout = 1;
         Integer gcInterval = 1;
-        TestWrapper testWrapper = getTestSenderWrapper(token, type, loggerName, drainTimeout, 98,
-                null, 10*1000,false, "",gcInterval , port);
-
+        LogzioSender logzioSender = getTestLogzioSender(token, type, drainTimeout, gcInterval, mockListener.getPort());
 
 
         List<Thread> threads = new ArrayList<>();
@@ -38,7 +70,7 @@ public abstract class LongRunningTests extends BaseTest {
             for (int j = 1; j < threadCount; j++) {
                 Thread thread = new Thread(() -> {
                     for (int i = 1; i <= msgCount; i++) {
-                        testWrapper.warn("Hello i");
+                        logzioSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, "Hello i"));
                         if (Thread.interrupted()) {
                             logger.info("Stopping thread - interrupted");
                             break;
@@ -69,8 +101,8 @@ public abstract class LongRunningTests extends BaseTest {
 
         } finally {
             threads.forEach(Thread::interrupt);
-            testWrapper.stop();
         }
 
     }
+
 }
