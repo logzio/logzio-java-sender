@@ -17,37 +17,36 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static io.logz.test.MockLogzioBulkListener.LISTENER_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Created by MarinaRazumovsky on 27/12/2016.
+ * Created by /**
+ * @author MarinaRazumovsky
  */
+
 public class LogzioLongRunningTests {
 
     private final static Logger logger = LoggerFactory.getLogger(LogzioLongRunningTests.class);
-    protected MockLogzioBulkListener mockListener;
+    private MockLogzioBulkListener mockListener;
 
     @Before
     public void startMockListener() throws Exception {
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
-
     }
 
     @After
     public void stopMockListener() {
-        mockListener.stop();
+        if (mockListener !=null)
+            mockListener.stop();
     }
 
     public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout, int gcInterval, int port) throws Exception {
-
         File tempDir = TestEnvironment.createTempDirectory();
         tempDir.deleteOnExit();
         String bufferDir = tempDir.getAbsolutePath();
         LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout, 98, bufferDir,
-                "http://" + LISTENER_ADDRESS + ":" + port, 10*1000, 10*1000, true, new LogzioTestSenderUtil.StatusReporter(logger), Executors.newScheduledThreadPool(2),gcInterval);
+                "http://" + mockListener.getHost() + ":" + port, 10*1000, 10*1000, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),gcInterval);
         sender.start();
         return sender;
     }
@@ -102,7 +101,6 @@ public class LogzioLongRunningTests {
         } finally {
             threads.forEach(Thread::interrupt);
         }
-
     }
 
 }

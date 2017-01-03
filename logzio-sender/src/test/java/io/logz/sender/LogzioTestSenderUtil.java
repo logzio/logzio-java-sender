@@ -3,8 +3,10 @@ package io.logz.sender;
 import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 
+import java.util.UUID;
+
 /**
- * Created by MarinaRazumovsky on 27/12/2016.
+ * @author MarinaRazumovsky
  */
 public class LogzioTestSenderUtil {
 
@@ -19,43 +21,4 @@ public class LogzioTestSenderUtil {
         return obj;
     }
 
-
-    public static class StatusReporter implements LogzioStatusReporter {
-
-        private Logger logger;
-
-        public StatusReporter(Logger logger){
-            this.logger = logger;
-        }
-
-        @Override
-        public void error(String msg) {
-            logger.error(msg);
-        }
-
-        @Override
-        public void error(String msg, Throwable throwable) {
-            logger.error(msg, throwable);
-        }
-
-        @Override
-        public void warning(String msg) {
-            logger.warn(msg);
-        }
-
-        @Override
-        public void warning(String msg, Throwable throwable) {
-            logger.warn(msg,throwable);
-        }
-
-        @Override
-        public void info(String msg) {
-            logger.info(msg);
-        }
-
-        @Override
-        public void info(String msg, Throwable throwable) {
-            logger.info(msg,throwable);
-        }
-    }
 }

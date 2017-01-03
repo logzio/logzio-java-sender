@@ -2,6 +2,7 @@ package io.logz.sender;
 
 import com.bluejeans.common.bigqueue.BigQueue;
 import com.google.gson.JsonObject;
+import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
 import java.io.ByteArrayOutputStream;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +57,7 @@ public class LogzioSender {
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                          LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                          int gcPersistedQueueFilesIntervalSeconds)
-            throws IllegalArgumentException {
+            throws IllegalArgumentException, LogzioParameterErrorException {
 
         this.logzioToken = logzioToken;
         this.logzioType = logzioType;
@@ -71,8 +73,16 @@ public class LogzioSender {
         if (this.fsPercentThreshold == -1) {
             dontCheckEnoughDiskSpace = true;
         }
-
-        logsBuffer = new BigQueue(bufferDir, "logzio-java-sender");
+        // divide bufferDir to dir and queue name
+        if (bufferDir == null) {
+            throw new LogzioParameterErrorException("bufferDir", "null");
+        }
+        Path dir = new File(bufferDir).getAbsoluteFile().toPath().normalize().getParent();
+        Path queueNameDir = new File(bufferDir).getAbsoluteFile().toPath().normalize().getFileName();
+        if (dir == null || queueNameDir == null) {
+            throw new LogzioParameterErrorException("bufferDir", bufferDir, "Can't be empty");
+        }
+        logsBuffer = new BigQueue(dir.toString(), queueNameDir.toString());
         queueDirectory = new File(bufferDir);
 
 
@@ -91,31 +101,15 @@ public class LogzioSender {
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, String bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws IOException {
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws IOException, LogzioParameterErrorException {
 
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
         LogzioSender logzioSenderInstance = logzioSenderInstances.get(logzioType);
         if (logzioSenderInstance == null) {
-            if (bufferDir != null) {
-
-                bufferDir += "/" + logzioType;
-                File bufferFile = new File(bufferDir);
-                if (bufferFile.exists()) {
-
-                    if (!bufferFile.canWrite()) {
-                        reporter.error("We cant write to your bufferDir location: " + bufferFile.getAbsolutePath());
-                        throw new IOException("Can't write to bufferDir location: "+bufferFile.getAbsolutePath());
-                    }
-                } else {
-                    if (!bufferFile.mkdirs()) {
-                        reporter.error("Can't create bufferDir location: " + bufferFile.getAbsolutePath());
-                        throw new IOException("Can't create bufferDir location: "+bufferFile.getAbsolutePath());
-                    }
-                }
-            } else {
-                bufferDir = System.getProperty("java.io.tmpdir") + "/logzio-sender-buffer/" + logzioType;
+            if (bufferDir == null) {
+                throw new LogzioParameterErrorException("bufferDir", "null");
             }
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
@@ -184,6 +178,7 @@ public class LogzioSender {
     }
 
     public void send(JsonObject jsonMessage) {
+        // Return the json, while separating lines with \n
         enqueue((jsonMessage+ "\n").getBytes());
     }
 

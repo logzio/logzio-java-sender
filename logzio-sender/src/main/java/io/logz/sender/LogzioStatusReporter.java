@@ -1,8 +1,9 @@
 package io.logz.sender;
 
 /**
- * Created by MarinaRazumovsky on 15/12/2016.
+ * @author MarinaRazumovsky
  */
+
 public interface LogzioStatusReporter {
 
 

@@ -4,7 +4,6 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.assertj.core.api.Assertions;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -25,29 +24,28 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MockLogzioBulkListener implements Closeable {
     private final static Logger logger = LoggerFactory.getLogger(MockLogzioBulkListener.class);
-    public static final String LISTENER_ADDRESS = "localhost";
+    private static final String LISTENER_ADDRESS = "localhost";
 
     private Server server;
     private Queue<LogRequest> logRequests = new ConcurrentLinkedQueue<>();
     private final String host;
     private final int port;
 
-    private boolean makeServerTimeout = false;
+    private boolean isServerTimeoutMode = false;
     private boolean raiseExceptionOnLog = false;
     private int timeoutMillis = 10000;
 
     public void setFailWithServerError(boolean raiseExceptionOnLog) {
         this.raiseExceptionOnLog = raiseExceptionOnLog;
     }
-    public void setMakeServerTimeout(boolean makeServerTimeout) {
-        this.makeServerTimeout = makeServerTimeout;
+    public void setServerTimeoutMode(boolean serverTimeoutMode) {
+        this.isServerTimeoutMode = serverTimeoutMode;
     }
     public void setTimeoutMillis(int timeoutMillis) {
         this.timeoutMillis = timeoutMillis;
@@ -63,7 +61,7 @@ public class MockLogzioBulkListener implements Closeable {
 
                 logger.debug("got request with query string: {} ({})", request.getQueryString(), this);
 
-                if (makeServerTimeout) {
+                if (isServerTimeoutMode) {
 
                     try {
                         Thread.sleep(timeoutMillis);
@@ -175,6 +173,10 @@ public class MockLogzioBulkListener implements Closeable {
         return port;
     }
 
+    public String getHost() {
+        return host;
+    }
+
     public static class LogRequest {
         private final String token;
         private final String type;
@@ -256,23 +258,9 @@ public class MockLogzioBulkListener implements Closeable {
         assertThat(logRequest.isPresent()).describedAs("Log with message '"+message+"' received").isTrue();
         return logRequest.get();
     }
-    
-
-    public void sleepSeconds(int seconds) {
-        logger.info("Sleeping {} [sec]...", seconds);
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String random(int numberOfChars) {
-        return UUID.randomUUID().toString().substring(0, numberOfChars-1);
-    }
 
     public void assertNumberOfReceivedMsgs(int count) {
-        Assertions.assertThat(getNumberOfReceivedLogs())
+        assertThat(getNumberOfReceivedLogs())
                 .describedAs("Messages on mock listener: {}", getReceivedMsgs())
                 .isEqualTo(count);
     }
@@ -283,19 +271,11 @@ public class MockLogzioBulkListener implements Closeable {
     }
 
     public void assertLogReceivedIs(MockLogzioBulkListener.LogRequest log, String token, String type, String loggerName, String level) {
-        Assertions.assertThat(log.getToken()).isEqualTo(token);
-        Assertions.assertThat(log.getType()).isEqualTo(type);
-        Assertions.assertThat(log.getLogger()).isEqualTo(loggerName);
-        Assertions.assertThat(log.getLogLevel()).isEqualTo(level);
+        assertThat(log.getToken()).isEqualTo(token);
+        assertThat(log.getType()).isEqualTo(type);
+        assertThat(log.getLogger()).isEqualTo(loggerName);
+        assertThat(log.getLogLevel()).isEqualTo(level);
     }
 
-    public void assertAdditionalFields(MockLogzioBulkListener.LogRequest logRequest, Map<String, String> additionalFields) {
-        additionalFields.forEach((field, value) -> {
-            String fieldValueInLog = logRequest.getStringFieldOrNull(field);
-            assertThat(fieldValueInLog)
-                    .describedAs("Field '{}' in Log [{}]", field, logRequest.getJsonObject().toString())
-                    .isNotNull()
-                    .isEqualTo(value);
-        });
-    }
+
 }
