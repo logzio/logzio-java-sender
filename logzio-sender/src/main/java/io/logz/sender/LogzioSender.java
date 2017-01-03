@@ -43,6 +43,8 @@ public class LogzioSender {
     private final int drainTimeout;
     private final int fsPercentThreshold;
     private final String logzioUrl;
+
+    private final String DEFAULT_URL = "https://listener.logz.io:8071";
     private final int socketTimeout;
     private final int connectTimeout;
     private final boolean debug;
@@ -63,6 +65,8 @@ public class LogzioSender {
         this.logzioType = logzioType;
         this.drainTimeout = drainTimeout;
         this.fsPercentThreshold = fsPercentThreshold;
+        if (logzioUrl == null)
+            logzioUrl = DEFAULT_URL;
         this.logzioUrl = logzioUrl;
         this.socketTimeout = socketTimeout;
         this.connectTimeout = connectTimeout;
