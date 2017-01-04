@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/logzio/logzio-java-sender.svg?branch=master)](https://travis-ci.org/logzio/logzio-java-sender)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.logz.sender-sender/badge.svg)](http://mvnrepository.com/artifact/io.logz.sender/logzio-java-sender)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.logz.sender/logzio-java-sender/badge.svg)](http://mvnrepository.com/artifact/io.logz.sender/logzio-java-sender)
 
 # Logzio java sender
 This sender sends logs messages to your [Logz.io](http://logz.io) account in JSON format, using non-blocking threading, bulks, and HTTPS encryption. Please note that this sender requires java 8 and up.
@@ -37,14 +37,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 
-public class LogzioLogbackExample {
+public class LogzioSenderExample {
 
     public static void main(String[] args) {
         LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, logzioType, drainTimeoutSec,fileSystemFullPercentThreshold, bufferDir,
                         logzioUrl, socketTimeout, serverTimeout, true, new LogzioStatusReporter(){/*implement simple interface for logging sender logging */}, Executors.newScheduledThreadPool(2),30);
         sender.start();
-        JsonObject jsonMessage = createLogMessage(); // create JsonObject to sent to logz.io
-        sender.sent(jsonMessage);
+        JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
+        sender.send(jsonMessage);
     }
 }
 ```
@@ -52,8 +52,8 @@ public class LogzioLogbackExample {
 
 
 ### Release notes
- - 1.0.0 - 1.0.2
-   - Initial releases
+ - 1.0.0
+   - Initial release
    
 
 ### Contribution

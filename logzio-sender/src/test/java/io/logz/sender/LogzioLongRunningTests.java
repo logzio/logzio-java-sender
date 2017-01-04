@@ -43,8 +43,7 @@ public class LogzioLongRunningTests {
     public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout, int gcInterval, int port) throws Exception {
         File tempDir = TestEnvironment.createTempDirectory();
         tempDir.deleteOnExit();
-        String bufferDir = tempDir.getAbsolutePath();
-        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout, 98, bufferDir,
+        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout, 98, tempDir,
                 "http://" + mockListener.getHost() + ":" + port, 10*1000, 10*1000, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),gcInterval);
         sender.start();
         return sender;

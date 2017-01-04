@@ -55,7 +55,7 @@ public class LogzioSender {
     private final int gcPersistedQueueFilesIntervalSeconds;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
 
-    private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, String bufferDir,
+    private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                          LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                          int gcPersistedQueueFilesIntervalSeconds)
@@ -81,13 +81,13 @@ public class LogzioSender {
         if (bufferDir == null) {
             throw new LogzioParameterErrorException("bufferDir", "null");
         }
-        Path dir = new File(bufferDir).getAbsoluteFile().toPath().normalize().getParent();
-        Path queueNameDir = new File(bufferDir).getAbsoluteFile().toPath().normalize().getFileName();
-        if (dir == null || queueNameDir == null) {
-            throw new LogzioParameterErrorException("bufferDir", bufferDir, "Can't be empty");
+        String dir = bufferDir.getAbsoluteFile().getParent();
+        String queueNameDir = bufferDir.getName();
+        if (dir == null || queueNameDir.isEmpty() ) {
+            throw new LogzioParameterErrorException("bufferDir", bufferDir.getAbsolutePath(), "Can't be empty");
         }
-        logsBuffer = new BigQueue(dir.toString(), queueNameDir.toString());
-        queueDirectory = new File(bufferDir);
+        logsBuffer = new BigQueue(dir, queueNameDir);
+        queueDirectory = bufferDir;
 
 
         try {
@@ -102,7 +102,7 @@ public class LogzioSender {
         debug("Created new LogzioSender class");
     }
 
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, String bufferDir,
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                                     int gcPersistedQueueFilesIntervalSeconds) throws IOException, LogzioParameterErrorException {

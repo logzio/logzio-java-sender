@@ -57,11 +57,11 @@ public class LogzioSenderTest {
     }
 
     public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout,
-                                             Integer fsPercentThreshold, String bufferDir, Integer socketTimeout, Integer serverTimeout, int port) throws IOException, LogzioParameterErrorException {
+                                             Integer fsPercentThreshold, File bufferDir, Integer socketTimeout, Integer serverTimeout, int port) throws IOException, LogzioParameterErrorException {
         if (bufferDir == null) {
-            File tempDir = TestEnvironment.createTempDirectory();
-            tempDir.deleteOnExit();
-            bufferDir = tempDir.getAbsolutePath();
+            bufferDir = TestEnvironment.createTempDirectory();
+            bufferDir.deleteOnExit();
+
         }
         LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout,fsPercentThreshold, bufferDir,
                 "http://" + mockListener.getHost() + ":" + port, socketTimeout, serverTimeout, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),30);
@@ -148,16 +148,16 @@ public class LogzioSenderTest {
         int drainTimeout = 10;
         File tempDirectory = TestEnvironment.createTempDirectory();
 
-        String bufferDir = new File(tempDirectory, "dirWhichDoesNotExists").getAbsolutePath();
+        File bufferDir = new File(tempDirectory, "dirWhichDoesNotExists");
         String message1 = "Just sending something - " + random(5);
-        File buffer = new File(bufferDir);
-        assertFalse(buffer.exists());
+
+        assertFalse(bufferDir.exists());
 
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 bufferDir, 10 * 1000,10 * 1000, mockListener.getPort());
 
         testSender.send( LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
-        assertTrue(buffer.exists());
+        assertTrue(bufferDir.exists());
         tempDirectory.delete();
     }
 
@@ -168,14 +168,12 @@ public class LogzioSenderTest {
         String loggerName = "changeBufferLocation";
         int drainTimeout = 10;
         File tempDirectory = new File(""+File.separator);
-        tempDirectory.setWritable(false);
-        String bufferDir = tempDirectory.getAbsolutePath();
         String message1 = "Just sending something - " + random(5);
         try {
             LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                    bufferDir, 10 * 1000, 10 * 1000, mockListener.getPort());
+                    tempDirectory, 10 * 1000, 10 * 1000, mockListener.getPort());
         } catch(LogzioParameterErrorException e) {
-            assertTrue(e.getMessage().contains(bufferDir));
+            assertTrue(e.getMessage().contains(tempDirectory.getAbsolutePath()));
         }
         assertTrue(tempDirectory.exists());
         tempDirectory.delete();
