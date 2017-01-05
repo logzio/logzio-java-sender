@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 /**
  * @author MarinaRazumovsky
@@ -67,7 +68,7 @@ public class LogzioLongRunningTests {
             for (int j = 1; j < threadCount; j++) {
                 Thread thread = new Thread(() -> {
                     for (int i = 1; i <= msgCount; i++) {
-                        logzioSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, "Hello i"));
+                        logzioSender.send(createJsonMessage(loggerName, "Hello i"));
                         if (Thread.interrupted()) {
                             logger.info("Stopping thread - interrupted");
                             break;

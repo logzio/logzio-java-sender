@@ -59,7 +59,7 @@ public class LogzioSender {
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                          LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                          int gcPersistedQueueFilesIntervalSeconds)
-            throws IllegalArgumentException, LogzioParameterErrorException {
+            throws  LogzioParameterErrorException {
 
         this.logzioToken = logzioToken;
         this.logzioType = logzioType;
@@ -79,12 +79,12 @@ public class LogzioSender {
         }
         // divide bufferDir to dir and queue name
         if (bufferDir == null) {
-            throw new LogzioParameterErrorException("bufferDir", "null");
+            throw new LogzioParameterErrorException("bufferDir", "value is null.");
         }
         String dir = bufferDir.getAbsoluteFile().getParent();
         String queueNameDir = bufferDir.getName();
         if (dir == null || queueNameDir.isEmpty() ) {
-            throw new LogzioParameterErrorException("bufferDir", bufferDir.getAbsolutePath(), "Can't be empty");
+            throw new LogzioParameterErrorException("bufferDir", " value is empty: "+bufferDir.getAbsolutePath());
         }
         logsBuffer = new BigQueue(dir, queueNameDir);
         queueDirectory = bufferDir;
@@ -94,7 +94,8 @@ public class LogzioSender {
             logzioListenerUrl = new URL(this.logzioUrl + "/?token=" + this.logzioToken + "&type=" + this.logzioType);
 
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("For some reason could not initialize URL. Cant recover..");
+            reporter.error("Can't connect to Logzio: "+e.getMessage(), e);
+            throw new LogzioParameterErrorException("logzioUrl="+logzioUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
         }
 
         this.tasksExecutor = tasksExecutor;

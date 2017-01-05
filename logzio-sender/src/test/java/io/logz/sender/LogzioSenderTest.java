@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
+import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -82,8 +83,8 @@ public class LogzioSenderTest {
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 null, 10 * 1000,10 * 1000, mockListener.getPort());
 
-        testSender.send( LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
-        testSender.send( LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send( createJsonMessage(loggerName, message1));
+        testSender.send( createJsonMessage(loggerName, message2));
         sleepSeconds(drainTimeout  *3);
 
         mockListener.assertNumberOfReceivedMsgs(2);
@@ -104,13 +105,13 @@ public class LogzioSenderTest {
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 null, 10 * 1000, 10 * 1000, mockListener.getPort());
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage( loggerName, message1));
+        testSender.send(createJsonMessage( loggerName, message1));
         sleepSeconds(2 * drainTimeout);
 
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
 
         mockListener.assertNumberOfReceivedMsgs(2);
@@ -129,8 +130,8 @@ public class LogzioSenderTest {
 
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 null, 10 * 1000,10 * 1000, mockListener.getPort());
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message2));
 
         mockListener.assertNumberOfReceivedMsgs(0);
         sleepSeconds(drainTimeout + 1);
@@ -156,7 +157,7 @@ public class LogzioSenderTest {
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 bufferDir, 10 * 1000,10 * 1000, mockListener.getPort());
 
-        testSender.send( LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
+        testSender.send( createJsonMessage(loggerName, message1));
         assertTrue(bufferDir.exists());
         tempDirectory.delete();
     }
@@ -194,8 +195,8 @@ public class LogzioSenderTest {
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeoutSec, fsPercentDrop,
                 null, 10 * 1000, 10 * 1000, mockListener.getPort());
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeoutSec);
         mockListener.assertNumberOfReceivedMsgs(0);
         tempDirectoryThatWillBeInTheSameFsAsTheBuffer.delete();
@@ -215,7 +216,7 @@ public class LogzioSenderTest {
         LogzioSender testSender = getTestLogzioSender(token, type,  drainTimeout, 98,
                 null, 10 * 1000, 10 * 1000, mockListener.getPort());
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message1));
 
         sleepSeconds(2 * drainTimeout);
 
@@ -224,14 +225,14 @@ public class LogzioSenderTest {
 
         mockListener.stop();
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
 
         mockListener.assertNumberOfReceivedMsgs(1); // haven't changed - still 1
 
         mockListener.start();
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message3));
+        testSender.send(createJsonMessage(loggerName, message3));
 
         sleepSeconds(2 * drainTimeout);
 
@@ -257,7 +258,7 @@ public class LogzioSenderTest {
                 null, socketTimeout, serverTimeout,  mockListener.getPort());
 
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message1));
 
         sleepSeconds(2 * drainTimeout);
 
@@ -267,7 +268,7 @@ public class LogzioSenderTest {
         mockListener.setTimeoutMillis(serverTimeout);
         mockListener.setServerTimeoutMode(true);
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message2));
 
         sleepSeconds((socketTimeout / 1000) * MAX_RETRIES_ATTEMPTS + retryTotalDelay());
 
@@ -305,14 +306,14 @@ public class LogzioSenderTest {
 
         LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
                 null, 10*1000, 10*1000,  mockListener.getPort());
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
 
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.setFailWithServerError(true);
 
-        testSender.send(LogzioTestSenderUtil.createJsonMessage(loggerName, message2));
+        testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
 
         mockListener.assertNumberOfReceivedMsgs(1); // Haven't changed

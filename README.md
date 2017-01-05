@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/logzio/logzio-java-sender.svg?branch=master)](https://travis-ci.org/logzio/logzio-java-sender)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.logz.sender/logzio-java-sender/badge.svg)](http://mvnrepository.com/artifact/io.logz.sender/logzio-java-sender)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.logz.sender/logzio-sender/badge.svg)](http://mvnrepository.com/artifact/io.logz.sender/logzio-sender)
 
 # Logzio java sender
 This sender sends logs messages to your [Logz.io](http://logz.io) account in JSON format, using non-blocking threading, bulks, and HTTPS encryption. Please note that this sender requires java 8 and up.
