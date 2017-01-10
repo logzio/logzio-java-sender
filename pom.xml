@@ -9,6 +9,32 @@
     <packaging>pom</packaging>
     <version>1.0.0</version>
 
+    <name>Logz.io Logs Sender</name>
+    <description>Send your log messages to your logz.io account in an encrypted, non-blocking manner.</description>
+    <url>https://github.com/logzio/logzio-java-sender</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Roi Rav-Hon</name>
+            <email>roi@logz.io</email>
+            <organization>Logz.io</organization>
+            <organizationUrl>http://logz.io</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:logzio/logzio-java-sender.git</connection>
+        <developerConnection>scm:git:git@github.com:logzio/logzio-java-sender.git</developerConnection>
+        <url>https://github.com/logzio/logzio-java-sender</url>
+    </scm>
+
     <modules>
         <module>logzio-sender-test</module>
         <module>logzio-sender</module>
