@@ -52,7 +52,7 @@ public class LogzioSenderExample {
 
 
 ### Release notes
- - 1.0.0
+ - 1.0.1
    - Fix dependences issue
  - 1.0.0
    - Initial release
