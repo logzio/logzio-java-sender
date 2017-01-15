@@ -7,7 +7,7 @@
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-java-sender</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.2</version>
+    <version>${sender.version}</version>
 
     <name>Logz.io Logs Sender</name>
     <description>Send your log messages to your logz.io account in an encrypted, non-blocking manner.</description>
@@ -39,6 +39,10 @@
         <module>logzio-sender-test</module>
         <module>logzio-sender</module>
     </modules>
+
+    <properties>
+        <sender.version>1.0.2</sender.version>
+    </properties>
 
     <build>
         <plugins>
