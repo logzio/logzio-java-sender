@@ -38,15 +38,15 @@
                     <relocations>
                         <relocation>
                             <pattern>com.google.common</pattern>
-                            <shadedPattern>io.logz.com.google.common</shadedPattern>
+                            <shadedPattern>io.logz.sender.com.google.common</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>com.bluejeans.common.bigqueue</pattern>
-                            <shadedPattern>io.logz.com.bluejeans.common.bigqueue</shadedPattern>
+                            <shadedPattern>io.logz.sender.com.bluejeans.common.bigqueue</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>com.google.gson</pattern>
-                            <shadedPattern>io.logz.com.google.gson</shadedPattern>
+                            <shadedPattern>io.logz.sender.com.google.gson</shadedPattern>
                         </relocation>
                     </relocations>
                     <filters>
