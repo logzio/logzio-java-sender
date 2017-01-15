@@ -12,7 +12,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 <dependency>
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-sender</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ public class LogzioSenderExample {
 
 
 ### Release notes
- - 1.0.1
+ - 1.0.1-1.0.2
    - Fix dependences issue
  - 1.0.0
    - Initial release
