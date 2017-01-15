@@ -6,8 +6,8 @@ import org.slf4j.Logger;
  * @author MarinaRazumovsky
  */
 
-public class LogzioTestStatusReporter implements LogzioStatusReporter {
-    protected Logger logger;
+public class LogzioTestStatusReporter implements SenderStatusReporter {
+    private Logger logger;
 
     public LogzioTestStatusReporter(Logger logger) {
         this.logger = logger;

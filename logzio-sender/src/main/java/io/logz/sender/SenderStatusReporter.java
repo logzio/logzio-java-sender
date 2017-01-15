@@ -4,7 +4,7 @@ package io.logz.sender;
  * @author MarinaRazumovsky
  */
 
-public interface LogzioStatusReporter {
+public interface SenderStatusReporter {
 
 
     public void error(String msg);

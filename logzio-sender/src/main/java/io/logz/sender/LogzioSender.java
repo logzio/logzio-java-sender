@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +47,7 @@ public class LogzioSender {
     private final int socketTimeout;
     private final int connectTimeout;
     private final boolean debug;
-    private final LogzioStatusReporter reporter;
+    private final SenderStatusReporter reporter;
 
     private ScheduledExecutorService tasksExecutor;
 
@@ -57,7 +56,7 @@ public class LogzioSender {
 
     private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                         LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
+                         SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                          int gcPersistedQueueFilesIntervalSeconds)
             throws  LogzioParameterErrorException {
 
@@ -105,7 +104,7 @@ public class LogzioSender {
 
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    LogzioStatusReporter reporter, ScheduledExecutorService tasksExecutor,
+                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                                     int gcPersistedQueueFilesIntervalSeconds) throws IOException, LogzioParameterErrorException {
 
         // We want one buffer per logzio data type.
