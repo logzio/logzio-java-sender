@@ -12,7 +12,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 <dependency>
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-sender</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -23,7 +23,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
 | **drainTimeoutSec**       | *5*                                    | How often the sender should drain the buffer (in seconds) |
-| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer rests will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
+| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **bufferDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
@@ -52,7 +52,7 @@ public class LogzioSenderExample {
 
 
 ### Release notes
- - 1.0.1-1.0.3
+ - 1.0.1-1.0.4
    - Fix dependences issue
  - 1.0.0
    - Initial release

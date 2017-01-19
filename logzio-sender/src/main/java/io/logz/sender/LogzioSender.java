@@ -105,7 +105,7 @@ public class LogzioSender {
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws IOException, LogzioParameterErrorException {
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
 
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
@@ -263,7 +263,6 @@ public class LogzioSender {
             for (FormattedLogMessage currMessage : messages) byteOutputStream.write(currMessage.getMessage());
             return byteOutputStream.toByteArray();
         } catch (IOException e) {
-
             throw new RuntimeException(e);
         }
     }
