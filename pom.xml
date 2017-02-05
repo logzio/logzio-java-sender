@@ -7,7 +7,7 @@
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-java-sender</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
 
     <name>Logz.io Logs Sender</name>
     <description>Send your log messages to your logz.io account in an encrypted, non-blocking manner.</description>
