@@ -212,10 +212,12 @@ public class LogzioSender {
     private List dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<FormattedLogMessage>();
         while (!logsBuffer.isEmpty()) {
-
-            logsList.add(new FormattedLogMessage(logsBuffer.dequeue()));
-            if (sizeInBytes(logsList) >= MAX_SIZE_IN_BYTES) {
-                break;
+            byte[] message  = logsBuffer.dequeue();
+            if (message != null && message.length > 0) {
+                logsList.add(new FormattedLogMessage(message));
+                if (sizeInBytes(logsList) >= MAX_SIZE_IN_BYTES) {
+                    break;
+                }
             }
         }
         return logsList;
@@ -225,9 +227,7 @@ public class LogzioSender {
         debug("Attempting to drain queue");
         if (!logsBuffer.isEmpty()) {
             while (!logsBuffer.isEmpty()) {
-
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
-
                 try {
                     sendToLogzio(logsList);
 
@@ -268,18 +268,15 @@ public class LogzioSender {
     }
 
     private boolean shouldRetry(int statusCode) {
-
         boolean shouldRetry = true;
 
         switch (statusCode) {
-
             case HttpURLConnection.HTTP_OK:
             case HttpURLConnection.HTTP_BAD_REQUEST:
             case HttpURLConnection.HTTP_UNAUTHORIZED:
                 shouldRetry = false;
                 break;
         }
-
         return shouldRetry;
     }
 
