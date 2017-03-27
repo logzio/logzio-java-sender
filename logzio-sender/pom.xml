@@ -5,7 +5,7 @@
     <parent>
         <artifactId>logzio-java-sender</artifactId>
         <groupId>io.logz.sender</groupId>
-        <version>1.0.5</version>
+        <version>1.0.6</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.logz.sender</groupId>
             <artifactId>logzio-sender-test</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.6</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
