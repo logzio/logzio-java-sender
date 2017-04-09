@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -313,9 +314,12 @@ public class LogzioSender {
                         BufferedReader bufferedReader = null;
                         try {
                             StringBuilder problemDescription = new StringBuilder();
-                            bufferedReader = new BufferedReader(new InputStreamReader((this.conn.getErrorStream())));
-                            bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
-                            reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
+                            InputStream errorStream = this.conn.getErrorStream();
+                            if (errorStream != null) {
+                                bufferedReader = new BufferedReader(new InputStreamReader((errorStream)));
+                                bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
+                                reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
+                            }
                         } finally {
                             if (bufferedReader != null) {
                                 try {
