@@ -5,7 +5,7 @@
     <parent>
         <artifactId>logzio-java-sender</artifactId>
         <groupId>io.logz.sender</groupId>
-        <version>1.0.7</version>
+        <version>1.0.8</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -35,7 +35,7 @@
                             <include>com.google.code.gson:gson</include>
                         </includes>
                     </artifactSet>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
                     <relocations>
                         <relocation>
                             <pattern>com.google.common</pattern>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.logz.sender</groupId>
             <artifactId>logzio-sender-test</artifactId>
-            <version>1.0.7</version>
+            <version>1.0.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
