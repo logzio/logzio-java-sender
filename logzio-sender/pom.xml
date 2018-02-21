@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.logz.sender</groupId>
             <artifactId>logzio-sender-test</artifactId>
-            <version>1.0.8</version>
+            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

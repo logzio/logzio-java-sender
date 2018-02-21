@@ -5,12 +5,12 @@ cache:
   directories:
     - '$HOME/.m2'
 
-install: ./mvnw install -DskipTests -Dgpg.skip
+install: ./mvnw install -Dgpg.skip
 
 jobs:
   include:
-    - stage: Test
-      script: echo 'Build and Test ' $TRAVIS_BRANCH
+    - stage: install
+      script: echo 'Install on ' $TRAVIS_BRANCH
 
     - stage: deploy
       sudo: false
@@ -28,7 +28,7 @@ jobs:
           on:
             tags: true
             branch: master
-      after_deploy: echo 'Finish to deploy'
+      after_deploy: echo 'Deployed finished successfully'
 
 notifications:
   slack:
