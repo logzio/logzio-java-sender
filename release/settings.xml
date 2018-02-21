@@ -1,7 +1,7 @@
 <settings>
     <servers>
         <server>
-            <id>ossrh</id>
+            <id>ossrh-nexus</id>
             <username>${env.OSSRH_USERNAME}</username>
             <password>${env.OSSRH_PASSWORD}</password>
         </server>
@@ -9,7 +9,7 @@
 
     <profiles>
         <profile>
-            <id>ossrh</id>
+            <id>ossrh-nexus</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
