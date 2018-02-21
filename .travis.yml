@@ -5,7 +5,7 @@ cache:
   directories:
     - '$HOME/.m2'
 
-install: ./mvnw install -Dgpg.skip
+install: ./mvnw install -DskipTests  -Dgpg.skip
 
 jobs:
   include:
