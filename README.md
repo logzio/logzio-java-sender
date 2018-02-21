@@ -12,7 +12,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 <dependency>
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-sender</artifactId>
-    <version>1.0.7</version>
+    <version>${logzio-sender-version}</version>
 </dependency>
 ```
 
@@ -52,13 +52,14 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.8 fix st issue: [Shaded library still listed as dependencies](https://github.com/logzio/logzio-java-sender/issues/13)
  - 1.0.6 -1.0.7
    - add error message about reason of 400(BAD REQUEST)
  - 1.0.5 
    - add runtime dependency on slf4j-api
    - fix NulPointerException
  - 1.0.1-1.0.4
-   - Fix dependences issue
+   - Fix dependencies issue
  - 1.0.0
    - Initial release
    
