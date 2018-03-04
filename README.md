@@ -52,6 +52,7 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.9 add auto deploy
  - 1.0.8 fix st issue: [Shaded library still listed as dependencies](https://github.com/logzio/logzio-java-sender/issues/13)
  - 1.0.6 -1.0.7
    - add error message about reason of 400(BAD REQUEST)
