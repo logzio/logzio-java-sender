@@ -1,6 +1,7 @@
 package io.logz.sender;
 
 import com.bluejeans.common.bigqueue.BigQueue;
+import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
@@ -187,6 +188,10 @@ public class LogzioSender {
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
         enqueue((jsonMessage+ "\n").getBytes());
+    }
+
+    public void send(String message) {
+        enqueue((message + "\n").getBytes());
     }
 
     private void enqueue(byte[] message) {

@@ -1,6 +1,7 @@
 package io.logz.sender;
 
 
+import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
@@ -85,6 +86,37 @@ public class LogzioSenderTest {
 
         testSender.send( createJsonMessage(loggerName, message1));
         testSender.send( createJsonMessage(loggerName, message2));
+        sleepSeconds(drainTimeout  *3);
+
+        mockListener.assertNumberOfReceivedMsgs(2);
+        mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
+        mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+    }
+
+    @Test
+    public void simpleStringAppending() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsT";
+        String type = "awesomeType2";
+        String loggerName = "simpleAppending";
+        int drainTimeout = 2;
+
+        String message1 = "Testing.." + random(5);
+        JsonObject obj1 = new JsonObject();
+        obj1.addProperty("message", message1);
+        obj1.addProperty("logger", loggerName);
+        obj1.addProperty("loglevel", LOGLEVEL);
+
+        String message2 = "Warning test.." + random(5);
+        JsonObject obj2 = new JsonObject();
+        obj2.addProperty("message", message2);
+        obj2.addProperty("logger", loggerName);
+        obj2.addProperty("loglevel", LOGLEVEL);
+
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
+                null, 10 * 1000,10 * 1000, mockListener.getPort());
+
+        testSender.send(obj1.toString());
+        testSender.send(obj2.toString());
         sleepSeconds(drainTimeout  *3);
 
         mockListener.assertNumberOfReceivedMsgs(2);
