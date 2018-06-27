@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.eclipse.jetty.http.GzipHttpContent;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -14,8 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.*;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,21 +74,18 @@ public class MockLogzioBulkListener implements Closeable {
                         // swallow
                     }
                 }
+
                 // Bulks are \n delimited, so handling each log separately
+                getLogsStream(request).forEach(line -> {
+                    if (raiseExceptionOnLog) {
+                        throw new RuntimeException();
+                    }
 
-                request.getReader().lines().forEach(line -> {
-
-                        if (raiseExceptionOnLog) {
-                            throw new RuntimeException();
-                        }
-
-                        String queryString = request.getQueryString();
-                        LogRequest tmpRequest = new LogRequest(queryString, line);
-                        logRequests.add(tmpRequest);
-                        logger.debug("got log: {} ", line);
-                        }
-                );
-
+                    String queryString = request.getQueryString();
+                    LogRequest tmpRequest = new LogRequest(queryString, line);
+                    logRequests.add(tmpRequest);
+                    logger.debug("got log: {} ", line);
+                });
                 logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
 
                 // Tell Jetty we are ok, and it should return 200
@@ -96,7 +95,19 @@ public class MockLogzioBulkListener implements Closeable {
         logger.info("Created a mock listener ("+this+")");
     }
 
-     private int findFreePort() throws IOException {
+    private Stream<String> getLogsStream(HttpServletRequest request) throws IOException {
+        String contentEncoding = request.getHeader("Content-Encoding");
+        if (contentEncoding != null && request.getHeader("Content-Encoding").equals("gzip")) {
+            GZIPInputStream gzipInputStream = new GZIPInputStream(request.getInputStream());
+            Reader decoder = new InputStreamReader(gzipInputStream, "UTF-8");
+            BufferedReader br = new BufferedReader(decoder);
+            return br.lines();
+        } else {
+            return request.getReader().lines();
+        }
+    }
+
+    private int findFreePort() throws IOException {
          int attempts = 1;
          int port = -1;
          while (attempts <= 3) {

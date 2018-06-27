@@ -5,12 +5,7 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,6 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.GZIPOutputStream;
 
 public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
@@ -39,6 +35,7 @@ public class LogzioSender {
     private final URL logzioListenerUrl;
     private HttpURLConnection conn;
     private boolean dontCheckEnoughDiskSpace = false;
+    private boolean doGzip;
 
     private final String logzioToken;
     private final String logzioType;
@@ -108,7 +105,7 @@ public class LogzioSender {
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
+                                                                    int gcPersistedQueueFilesIntervalSeconds, Boolean doGzip) throws LogzioParameterErrorException {
 
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
@@ -121,7 +118,7 @@ public class LogzioSender {
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
                     tasksExecutor, gcPersistedQueueFilesIntervalSeconds);
-
+            logzioSender.doGzip = doGzip;
             logzioSenderInstances.put(logzioType, logzioSender);
             return logzioSender;
         } else {
@@ -135,6 +132,13 @@ public class LogzioSender {
             }
             return logzioSenderInstance;
         }
+    }
+
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
+                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
+                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
+        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, true);
     }
 
     public void start() {
@@ -260,13 +264,27 @@ public class LogzioSender {
     }
 
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
-
         try {
             ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
             for (FormattedLogMessage currMessage : messages) byteOutputStream.write(currMessage.getMessage());
+            if (this.doGzip){
+                return compressToGzip(byteOutputStream.toByteArray());
+            }
             return byteOutputStream.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] compressToGzip(byte [] bulkToCompress){
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(bulkToCompress.length);
+             GZIPOutputStream gzipOS = new GZIPOutputStream(bos)) {
+            gzipOS.write(bulkToCompress);
+            gzipOS.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            reporter.warning("Can't compress to gzip, sending message without compression");
+            return bulkToCompress;
         }
     }
 
@@ -300,6 +318,9 @@ public class LogzioSender {
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-length", String.valueOf(payload.length));
                     conn.setRequestProperty("Content-Type", "text/plain");
+                    if (doGzip){
+                        conn.setRequestProperty("Content-Encoding", "gzip");
+                    }
                     conn.setReadTimeout(socketTimeout);
                     conn.setConnectTimeout(connectTimeout);
                     conn.setDoOutput(true);

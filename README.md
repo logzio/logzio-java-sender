@@ -29,6 +29,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
+| **doGzip**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
 
 
 ### Code Example
