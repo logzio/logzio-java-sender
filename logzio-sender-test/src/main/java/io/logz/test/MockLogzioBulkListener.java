@@ -75,7 +75,6 @@ public class MockLogzioBulkListener implements Closeable {
                 try (Stream<String> logStream = getLogsStream(request)) {
                     logStream.forEach(line -> {
                         if (raiseExceptionOnLog) {
-                            logStream.close();
                             throw new RuntimeException();
                         }
 
