@@ -35,7 +35,7 @@ public class LogzioSender {
     private final URL logzioListenerUrl;
     private HttpURLConnection conn;
     private boolean dontCheckEnoughDiskSpace = false;
-    private boolean doGzip;
+    private boolean compressRequests;
 
     private final String logzioToken;
     private final String logzioType;
@@ -105,7 +105,7 @@ public class LogzioSender {
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds, Boolean doGzip) throws LogzioParameterErrorException {
+                                                                    int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests) throws LogzioParameterErrorException {
 
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
@@ -118,7 +118,7 @@ public class LogzioSender {
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
                     tasksExecutor, gcPersistedQueueFilesIntervalSeconds);
-            logzioSender.doGzip = doGzip;
+            logzioSender.compressRequests = compressRequests;
             logzioSenderInstances.put(logzioType, logzioSender);
             return logzioSender;
         } else {
@@ -138,7 +138,7 @@ public class LogzioSender {
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                                     int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, true);
+        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
     }
 
     public void start() {
@@ -264,29 +264,17 @@ public class LogzioSender {
     }
 
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
-        try {
-            ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
-            for (FormattedLogMessage currMessage : messages) byteOutputStream.write(currMessage.getMessage());
-            if (this.doGzip){
-                return compressToGzip(byteOutputStream.toByteArray());
-            }
+        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
+             OutputStream os = compressRequests ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
+            for (FormattedLogMessage currMessage : messages) os.write(currMessage.getMessage());
+            // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
+            os.close();
             return byteOutputStream.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private byte[] compressToGzip(byte [] bulkToCompress){
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(bulkToCompress.length);
-             GZIPOutputStream gzipOS = new GZIPOutputStream(bos)) {
-            gzipOS.write(bulkToCompress);
-            gzipOS.close();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            reporter.warning("Can't compress to gzip, sending message without compression");
-            return bulkToCompress;
-        }
-    }
 
     private boolean shouldRetry(int statusCode) {
         boolean shouldRetry = true;
@@ -318,7 +306,7 @@ public class LogzioSender {
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-length", String.valueOf(payload.length));
                     conn.setRequestProperty("Content-Type", "text/plain");
-                    if (doGzip){
+                    if (compressRequests){
                         conn.setRequestProperty("Content-Encoding", "gzip");
                     }
                     conn.setReadTimeout(socketTimeout);

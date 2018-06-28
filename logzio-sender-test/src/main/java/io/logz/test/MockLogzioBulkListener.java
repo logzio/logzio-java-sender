@@ -59,12 +59,9 @@ public class MockLogzioBulkListener implements Closeable {
         server = new Server(new InetSocketAddress(host, port));
         server.setHandler(new AbstractHandler() {
             @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-
+            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException{
                 logger.debug("got request with query string: {} ({})", request.getQueryString(), this);
-
                 if (isServerTimeoutMode) {
-
                     try {
                         Thread.sleep(timeoutMillis);
                         baseRequest.setHandled(true);
@@ -74,22 +71,24 @@ public class MockLogzioBulkListener implements Closeable {
                         // swallow
                     }
                 }
-
                 // Bulks are \n delimited, so handling each log separately
-                getLogsStream(request).forEach(line -> {
-                    if (raiseExceptionOnLog) {
-                        throw new RuntimeException();
-                    }
+                try (Stream<String> logStream = getLogsStream(request)) {
+                    logStream.forEach(line -> {
+                        if (raiseExceptionOnLog) {
+                            logStream.close();
+                            throw new RuntimeException();
+                        }
 
-                    String queryString = request.getQueryString();
-                    LogRequest tmpRequest = new LogRequest(queryString, line);
-                    logRequests.add(tmpRequest);
-                    logger.debug("got log: {} ", line);
-                });
-                logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
+                        String queryString = request.getQueryString();
+                        LogRequest tmpRequest = new LogRequest(queryString, line);
+                        logRequests.add(tmpRequest);
+                        logger.debug("got log: {} ", line);
+                    });
+                    logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
 
-                // Tell Jetty we are ok, and it should return 200
-                baseRequest.setHandled(true);
+                    // Tell Jetty we are ok, and it should return 200
+                    baseRequest.setHandled(true);
+                }
             }
         });
         logger.info("Created a mock listener ("+this+")");
