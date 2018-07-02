@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.eclipse.jetty.http.GzipHttpContent;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -14,8 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.*;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,12 +59,9 @@ public class MockLogzioBulkListener implements Closeable {
         server = new Server(new InetSocketAddress(host, port));
         server.setHandler(new AbstractHandler() {
             @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-
+            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException{
                 logger.debug("got request with query string: {} ({})", request.getQueryString(), this);
-
                 if (isServerTimeoutMode) {
-
                     try {
                         Thread.sleep(timeoutMillis);
                         baseRequest.setHandled(true);
@@ -73,9 +72,8 @@ public class MockLogzioBulkListener implements Closeable {
                     }
                 }
                 // Bulks are \n delimited, so handling each log separately
-
-                request.getReader().lines().forEach(line -> {
-
+                try (Stream<String> logStream = getLogsStream(request)) {
+                    logStream.forEach(line -> {
                         if (raiseExceptionOnLog) {
                             throw new RuntimeException();
                         }
@@ -84,19 +82,30 @@ public class MockLogzioBulkListener implements Closeable {
                         LogRequest tmpRequest = new LogRequest(queryString, line);
                         logRequests.add(tmpRequest);
                         logger.debug("got log: {} ", line);
-                        }
-                );
+                    });
+                    logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
 
-                logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
-
-                // Tell Jetty we are ok, and it should return 200
-                baseRequest.setHandled(true);
+                    // Tell Jetty we are ok, and it should return 200
+                    baseRequest.setHandled(true);
+                }
             }
         });
         logger.info("Created a mock listener ("+this+")");
     }
 
-     private int findFreePort() throws IOException {
+    private Stream<String> getLogsStream(HttpServletRequest request) throws IOException {
+        String contentEncoding = request.getHeader("Content-Encoding");
+        if (contentEncoding != null && request.getHeader("Content-Encoding").equals("gzip")) {
+            GZIPInputStream gzipInputStream = new GZIPInputStream(request.getInputStream());
+            Reader decoder = new InputStreamReader(gzipInputStream, "UTF-8");
+            BufferedReader br = new BufferedReader(decoder);
+            return br.lines();
+        } else {
+            return request.getReader().lines();
+        }
+    }
+
+    private int findFreePort() throws IOException {
          int attempts = 1;
          int port = -1;
          while (attempts <= 3) {
