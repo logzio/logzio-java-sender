@@ -5,14 +5,21 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +33,7 @@ public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
     public static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     public static final int MAX_RETRIES_ATTEMPTS = 3;
+    public static final long LONG_SHUTDOWN_DELAY_MS = 1000;
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
@@ -146,7 +154,7 @@ public class LogzioSender {
         tasksExecutor.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
     }
 
-    public void stop() {
+    public void stop() throws InterruptedException {
         // Creating a scheduled executor, outside of logback to try and drain the queue one last time
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         debug("Got stop request, Submitting a final drain queue task to drain before shutdown. Will timeout in " + FINAL_DRAIN_TIMEOUT_SEC + " seconds.");
@@ -156,7 +164,16 @@ public class LogzioSender {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             debug("Waited " + FINAL_DRAIN_TIMEOUT_SEC + " seconds, but could not finish draining. quitting.", e);
         } finally {
+            tasksExecutor.shutdownNow();
+            if(!tasksExecutor.awaitTermination(LONG_SHUTDOWN_DELAY_MS, TimeUnit.MILLISECONDS)){
+                reporter.warning("tasksExecutor timed out");
+            }
             executorService.shutdownNow();
+            if(!executorService.awaitTermination(LONG_SHUTDOWN_DELAY_MS, TimeUnit.MILLISECONDS)){
+                reporter.warning("executorService timed out");
+            }
+
+            logzioSenderInstances.remove(logzioType);
         }
     }
 
