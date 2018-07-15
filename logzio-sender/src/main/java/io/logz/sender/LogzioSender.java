@@ -9,10 +9,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +24,7 @@ public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
     public static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     public static final int MAX_RETRIES_ATTEMPTS = 3;
+    public static final long LONG_SHUTDOWN_DELAY_MS = 1000;
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
@@ -124,7 +123,7 @@ public class LogzioSender {
         } else {
             reporter.info("Already found appender configured for type " + logzioType + ", re-using the same one.");
 
-            // Sometimes (For example under Spring) the framework closes logback entirely (thos closing the executor)
+            // Sometimes (For example under Spring) the framework closes logback entirely (those closing the executor)
             // So we need to take a new one instead, as we can grantee that nothing is running now because it is terminated.
             if (logzioSenderInstance.tasksExecutor.isTerminated()) {
                 reporter.info("The old task executor is terminated! replacing it with a new one");
@@ -146,7 +145,7 @@ public class LogzioSender {
         tasksExecutor.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
     }
 
-    public void stop() {
+    public void stop() throws InterruptedException {
         // Creating a scheduled executor, outside of logback to try and drain the queue one last time
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         debug("Got stop request, Submitting a final drain queue task to drain before shutdown. Will timeout in " + FINAL_DRAIN_TIMEOUT_SEC + " seconds.");
@@ -156,7 +155,16 @@ public class LogzioSender {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             debug("Waited " + FINAL_DRAIN_TIMEOUT_SEC + " seconds, but could not finish draining. quitting.", e);
         } finally {
+            tasksExecutor.shutdownNow();
+            if(!tasksExecutor.awaitTermination(LONG_SHUTDOWN_DELAY_MS, TimeUnit.MILLISECONDS)){
+                reporter.warning("tasksExecutor timed out");
+            }
             executorService.shutdownNow();
+            if(!executorService.awaitTermination(LONG_SHUTDOWN_DELAY_MS, TimeUnit.MILLISECONDS)){
+                reporter.warning("executorService timed out");
+            }
+
+            logzioSenderInstances.remove(logzioType);
         }
     }
 

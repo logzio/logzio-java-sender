@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
@@ -31,6 +32,7 @@ public class LogzioSenderTest {
 
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
+    private ScheduledExecutorService taskExecutor;
 
     @Before
     public void startMockListener() throws Exception {
@@ -69,8 +71,9 @@ public class LogzioSenderTest {
             bufferDir.deleteOnExit();
 
         }
+        taskExecutor = Executors.newScheduledThreadPool(2);
         LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout,fsPercentThreshold, bufferDir,
-                "http://" + mockListener.getHost() + ":" + port, socketTimeout, serverTimeout, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),30, compressRequests);
+                "http://" + mockListener.getHost() + ":" + port, socketTimeout, serverTimeout, true, new LogzioTestStatusReporter(logger), taskExecutor,30, compressRequests);
         sender.start();
         return sender;
     }
@@ -95,6 +98,29 @@ public class LogzioSenderTest {
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+    }
+
+    @Test
+    public void closeAppender() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsT";
+        String type = "awesomeCloseType";
+        String loggerName = "closeAppending";
+        int drainTimeout = 2;
+
+        String message1 = "Testing.." + random(5);
+        String message2 = "Warning test.." + random(5);
+
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
+                null, 10 * 1000,10 * 1000, mockListener.getPort());
+
+        testSender.send( createJsonMessage(loggerName, message1));
+        testSender.send( createJsonMessage(loggerName, message2));
+        testSender.stop();
+
+        mockListener.assertNumberOfReceivedMsgs(2);
+        mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
+        mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+        assertTrue(taskExecutor.isShutdown());
     }
 
     @Test
