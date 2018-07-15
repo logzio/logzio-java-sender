@@ -123,7 +123,7 @@ public class LogzioSender {
         } else {
             reporter.info("Already found appender configured for type " + logzioType + ", re-using the same one.");
 
-            // Sometimes (For example under Spring) the framework closes logback entirely (those closing the executor)
+            // Sometimes (For example under Spring) the framework closes logback entirely (thos closing the executor)
             // So we need to take a new one instead, as we can grantee that nothing is running now because it is terminated.
             if (logzioSenderInstance.tasksExecutor.isTerminated()) {
                 reporter.info("The old task executor is terminated! replacing it with a new one");
