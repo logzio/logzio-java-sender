@@ -4,7 +4,6 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
 
@@ -57,7 +56,7 @@ public class HttpsRequestConfiguration {
     private final boolean compressRequests;
 
 
-    private HttpsRequestConfiguration(String logzioToken,
+    public HttpsRequestConfiguration(String logzioToken,
                                      int maxRetriesAttempts, int initialWaitBeforeRetryMS, int socketTimeout,
                                      int connectTimeout, String requestMethod, URL logzioListenerUrl,
                                      boolean compressRequests, String logzioType) throws LogzioParameterErrorException {
@@ -84,7 +83,6 @@ public class HttpsRequestConfiguration {
         private String logzioListenerUrl = "https://listener.logz.io:8071";
         private String logzioToken;
         private boolean compressRequests = false;
-        private static final Logger LOGGER = Logger.getLogger( Builder.class.getName() );
 
         public Builder setLogzioToken(String logzioToken){
             this.logzioToken = logzioToken;
@@ -141,12 +139,10 @@ public class HttpsRequestConfiguration {
 
         public HttpsRequestConfiguration build() throws LogzioParameterErrorException {
             URL url;
-            try {
+            try{
                 url = createURL(logzioListenerUrl);
-            } catch (MalformedURLException e){
-                LOGGER.severe("Can't connect to Logzio: " + e.getMessage());
-                throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
-                        + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
+            }catch (MalformedURLException e){
+                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
             }
             return new HttpsRequestConfiguration(
                     requireNonNull(logzioToken, "logzioToken can't be null"),

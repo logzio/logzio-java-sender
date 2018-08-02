@@ -5,7 +5,10 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.GZIPOutputStream;
 
 public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
@@ -35,7 +39,8 @@ public class LogzioSender {
     private ScheduledExecutorService tasksExecutor;
     private final int gcPersistedQueueFilesIntervalSeconds;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
-    private final HttpsSyncSender httpsSyncSender;
+    private final HttpsRequestConfiguration httpsRequestConfiguration;
+    private final HttpsSyncRequest httpsSyncRequest;
 
     private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
@@ -43,7 +48,7 @@ public class LogzioSender {
                          int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests)
             throws  LogzioParameterErrorException {
 
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+        httpsRequestConfiguration = HttpsRequestConfiguration
                 .builder()
                 .setLogzioToken(logzioToken)
                 .setLogzioType(logzioType)
@@ -58,7 +63,7 @@ public class LogzioSender {
         this.debug = debug;
         this.gcPersistedQueueFilesIntervalSeconds = gcPersistedQueueFilesIntervalSeconds;
         this.reporter = reporter;
-        httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
+        httpsSyncRequest = new HttpsSyncRequest(httpsRequestConfiguration, reporter);
         if (this.fsPercentThreshold == -1) {
             dontCheckEnoughDiskSpace = true;
         }
@@ -193,13 +198,11 @@ public class LogzioSender {
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<>();
-        long totalSize = 0;
         while (!logsBuffer.isEmpty()) {
             byte[] message  = logsBuffer.dequeue();
             if (message != null && message.length > 0) {
                 logsList.add(new FormattedLogMessage(message));
-                totalSize += message.length;
-                if (totalSize >= MAX_SIZE_IN_BYTES) {
+                if (sizeInBytes(logsList) >= MAX_SIZE_IN_BYTES) {
                     break;
                 }
             }
@@ -213,7 +216,7 @@ public class LogzioSender {
             while (!logsBuffer.isEmpty()) {
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
                 try {
-                    httpsSyncSender.sendToLogzio(logsList);
+                    httpsSyncRequest.sendToLogzio(toNewLineSeparatedByteArray(logsList));
 
                 } catch (LogzioServerErrorException e) {
                     debug("Could not send log to logz.io: ", e);
@@ -230,6 +233,25 @@ public class LogzioSender {
                     break;
                 }
             }
+        }
+    }
+
+    private int sizeInBytes(List<FormattedLogMessage> logMessages) {
+        int totalSize = 0;
+        for (FormattedLogMessage currLog : logMessages) totalSize += currLog.getSize();
+
+        return totalSize;
+    }
+
+    private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
+        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
+             OutputStream os = httpsRequestConfiguration.isCompressRequests() ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
+            for (FormattedLogMessage currMessage : messages) os.write(currMessage.getMessage());
+            // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
+            os.close();
+            return byteOutputStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
