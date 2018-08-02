@@ -5,10 +5,11 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,55 +25,45 @@ import java.util.zip.GZIPOutputStream;
 
 public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
-    public static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
-    public static final int MAX_RETRIES_ATTEMPTS = 3;
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
     private final BigQueue logsBuffer;
     private final File queueDirectory;
-    private final URL logzioListenerUrl;
-    private HttpURLConnection conn;
     private boolean dontCheckEnoughDiskSpace = false;
-    private boolean compressRequests;
-
-    private final String logzioToken;
-    private final String logzioType;
     private final int drainTimeout;
     private final int fsPercentThreshold;
-    private final String logzioUrl;
-
-    private final String DEFAULT_URL = "https://listener.logz.io:8071";
-    private final int socketTimeout;
-    private final int connectTimeout;
     private final boolean debug;
     private final SenderStatusReporter reporter;
-
     private ScheduledExecutorService tasksExecutor;
-
     private final int gcPersistedQueueFilesIntervalSeconds;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
+    private final HttpsRequestConfiguration httpsRequestConfiguration;
+    private final HttpsSyncRequest httpsSyncRequest;
 
     private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         int gcPersistedQueueFilesIntervalSeconds)
+                         int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests)
             throws  LogzioParameterErrorException {
 
-        this.logzioToken = logzioToken;
-        this.logzioType = logzioType;
+        httpsRequestConfiguration = HttpsRequestConfiguration
+                .builder()
+                .setLogzioToken(logzioToken)
+                .setLogzioType(logzioType)
+                .setLogzioListenerUrl(logzioUrl)
+                .setSocketTimeout(socketTimeout)
+                .setConnectTimeout(connectTimeout)
+                .setCompressRequests(compressRequests)
+                .build();
+
         this.drainTimeout = drainTimeout;
         this.fsPercentThreshold = fsPercentThreshold;
-        if (logzioUrl == null)
-            logzioUrl = DEFAULT_URL;
-        this.logzioUrl = logzioUrl;
-        this.socketTimeout = socketTimeout;
-        this.connectTimeout = connectTimeout;
         this.debug = debug;
-        this.reporter = reporter;
         this.gcPersistedQueueFilesIntervalSeconds = gcPersistedQueueFilesIntervalSeconds;
-
+        this.reporter = reporter;
+        httpsSyncRequest = new HttpsSyncRequest(httpsRequestConfiguration, reporter);
         if (this.fsPercentThreshold == -1) {
             dontCheckEnoughDiskSpace = true;
         }
@@ -87,16 +78,6 @@ public class LogzioSender {
         }
         logsBuffer = new BigQueue(dir, queueNameDir);
         queueDirectory = bufferDir;
-
-
-        try {
-            logzioListenerUrl = new URL(this.logzioUrl + "/?token=" + this.logzioToken + "&type=" + this.logzioType);
-
-        } catch (MalformedURLException e) {
-            reporter.error("Can't connect to Logzio: "+e.getMessage(), e);
-            throw new LogzioParameterErrorException("logzioUrl="+logzioUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
-        }
-
         this.tasksExecutor = tasksExecutor;
 
         debug("Created new LogzioSender class");
@@ -117,8 +98,7 @@ public class LogzioSender {
             }
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
-                    tasksExecutor, gcPersistedQueueFilesIntervalSeconds);
-            logzioSender.compressRequests = compressRequests;
+                    tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests);
             logzioSenderInstances.put(logzioType, logzioSender);
             return logzioSender;
         } else {
@@ -216,8 +196,8 @@ public class LogzioSender {
         }
     }
 
-    private List dequeueUpToMaxBatchSize() {
-        List<FormattedLogMessage> logsList = new ArrayList<FormattedLogMessage>();
+    private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
+        List<FormattedLogMessage> logsList = new ArrayList<>();
         while (!logsBuffer.isEmpty()) {
             byte[] message  = logsBuffer.dequeue();
             if (message != null && message.length > 0) {
@@ -236,7 +216,7 @@ public class LogzioSender {
             while (!logsBuffer.isEmpty()) {
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
                 try {
-                    sendToLogzio(logsList);
+                    httpsSyncRequest.sendToLogzio(toNewLineSeparatedByteArray(logsList));
 
                 } catch (LogzioServerErrorException e) {
                     debug("Could not send log to logz.io: ", e);
@@ -265,114 +245,13 @@ public class LogzioSender {
 
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
         try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
-             OutputStream os = compressRequests ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
+             OutputStream os = httpsRequestConfiguration.isCompressRequests() ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
             for (FormattedLogMessage currMessage : messages) os.write(currMessage.getMessage());
             // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
             os.close();
             return byteOutputStream.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-
-    private boolean shouldRetry(int statusCode) {
-        boolean shouldRetry = true;
-        switch (statusCode) {
-            case HttpURLConnection.HTTP_OK:
-            case HttpURLConnection.HTTP_BAD_REQUEST:
-            case HttpURLConnection.HTTP_UNAUTHORIZED:
-                shouldRetry = false;
-                break;
-        }
-        return shouldRetry;
-    }
-
-    private void sendToLogzio(List<FormattedLogMessage> messages) throws LogzioServerErrorException {
-        try {
-
-            byte[] payload = toNewLineSeparatedByteArray(messages);
-            int currentRetrySleep = INITIAL_WAIT_BEFORE_RETRY_MS;
-
-            for (int currTry = 1; currTry <= MAX_RETRIES_ATTEMPTS; currTry++) {
-
-                boolean shouldRetry = true;
-                int responseCode = 0;
-                String responseMessage = "";
-                IOException savedException = null;
-
-                try {
-                    conn = (HttpURLConnection) logzioListenerUrl.openConnection();
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Content-length", String.valueOf(payload.length));
-                    conn.setRequestProperty("Content-Type", "text/plain");
-                    if (compressRequests){
-                        conn.setRequestProperty("Content-Encoding", "gzip");
-                    }
-                    conn.setReadTimeout(socketTimeout);
-                    conn.setConnectTimeout(connectTimeout);
-                    conn.setDoOutput(true);
-                    conn.setDoInput(true);
-
-                    conn.getOutputStream().write(payload);
-
-                    responseCode = conn.getResponseCode();
-                    responseMessage = conn.getResponseMessage();
-
-                    if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-                        BufferedReader bufferedReader = null;
-                        try {
-                            StringBuilder problemDescription = new StringBuilder();
-                            InputStream errorStream = this.conn.getErrorStream();
-                            if (errorStream != null) {
-                                bufferedReader = new BufferedReader(new InputStreamReader((errorStream)));
-                                bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
-                                reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
-                            }
-                        } finally {
-                            if (bufferedReader != null) {
-                                try {
-                                    bufferedReader.close();
-                                } catch(Exception e) {}
-                            }
-                        }
-                    }
-                    if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                        reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
-                    }
-
-                    shouldRetry = shouldRetry(responseCode);
-                } catch (IOException e) {
-                    savedException = e;
-                    debug("Got IO exception - " + e.getMessage());
-                }
-
-                if (!shouldRetry) {
-                    debug("Successfully sent bulk to logz.io, size: " + payload.length);
-                    break;
-
-                } else {
-
-                    if (currTry == MAX_RETRIES_ATTEMPTS) {
-
-                        if (savedException != null) {
-
-                            reporter.error("Got IO exception on the last bulk try to logz.io", savedException);
-                        }
-                        // Giving up, something is broken on Logz.io side, we will try again later
-                        throw new LogzioServerErrorException("Got HTTP " + responseCode + " code from logz.io, with message: " + responseMessage);
-                    }
-
-                    debug("Could not send log to logz.io, retry (" + currTry + "/" + MAX_RETRIES_ATTEMPTS + ")");
-                    debug("Sleeping for " + currentRetrySleep + " ms and will try again.");
-                    Thread.sleep(currentRetrySleep);
-                    currentRetrySleep *= 2;
-                }
-            }
-
-        } catch (InterruptedException e) {
-            debug("Got interrupted exception");
-            Thread.currentThread().interrupt();
         }
     }
 
