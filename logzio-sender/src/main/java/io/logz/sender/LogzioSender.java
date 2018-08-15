@@ -40,7 +40,7 @@ public class LogzioSender {
     private final int gcPersistedQueueFilesIntervalSeconds;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsRequestConfiguration httpsRequestConfiguration;
-    private final HttpsSyncRequest httpsSyncRequest;
+    private final HttpsSyncSender httpsSyncSender;
 
     private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
@@ -63,7 +63,7 @@ public class LogzioSender {
         this.debug = debug;
         this.gcPersistedQueueFilesIntervalSeconds = gcPersistedQueueFilesIntervalSeconds;
         this.reporter = reporter;
-        httpsSyncRequest = new HttpsSyncRequest(httpsRequestConfiguration, reporter);
+        httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
         if (this.fsPercentThreshold == -1) {
             dontCheckEnoughDiskSpace = true;
         }
@@ -216,7 +216,7 @@ public class LogzioSender {
             while (!logsBuffer.isEmpty()) {
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
                 try {
-                    httpsSyncRequest.sendToLogzio(toNewLineSeparatedByteArray(logsList));
+                    httpsSyncSender.sendToLogzio(toNewLineSeparatedByteArray(logsList));
 
                 } catch (LogzioServerErrorException e) {
                     debug("Could not send log to logz.io: ", e);
