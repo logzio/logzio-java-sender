@@ -139,10 +139,10 @@ public class HttpsRequestConfiguration {
 
         public HttpsRequestConfiguration build() throws LogzioParameterErrorException {
             URL url;
-            try{
+            try {
                 url = createURL(logzioListenerUrl);
-            }catch (MalformedURLException e){
-                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
+            } catch (MalformedURLException e){
+                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover.." + e);
             }
             return new HttpsRequestConfiguration(
                     requireNonNull(logzioToken, "logzioToken can't be null"),

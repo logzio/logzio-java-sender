@@ -9,12 +9,12 @@ import java.io.InputStreamReader;
 
 import java.net.HttpURLConnection;
 
-public class HttpsSyncRequest {
+public class HttpsSyncSender {
     private final HttpsRequestConfiguration configuration;
     private final SenderStatusReporter reporter;
 
 
-    public HttpsSyncRequest(HttpsRequestConfiguration configuration, SenderStatusReporter reporter){
+    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter){
         this.configuration = configuration;
         this.reporter = reporter;
     }
