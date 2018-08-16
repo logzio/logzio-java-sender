@@ -149,7 +149,8 @@ public class HttpsRequestConfiguration {
                 url = createURL(logzioListenerUrl);
             } catch (MalformedURLException e){
                 reporter.error("Can't connect to Logzio: " + e.getMessage(), e);
-                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
+                throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
+                        + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
             }
             return new HttpsRequestConfiguration(
                     requireNonNull(logzioToken, "logzioToken can't be null"),
