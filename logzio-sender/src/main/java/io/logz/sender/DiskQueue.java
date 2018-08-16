@@ -88,13 +88,11 @@ public class DiskQueue implements LogzioLogsBufferInterface{
         private File bufferDir;
         private SenderStatusReporter reporter;
 
-        public Builder setDontCheckEnoughDiskSpace(boolean check){
-            this.dontCheckEnoughDiskSpace = check;
-            return this;
-        }
-
         public Builder setFsPercentThreshold(int fsPercentThreshold) {
             this.fsPercentThreshold = fsPercentThreshold;
+            if (fsPercentThreshold == -1) {
+                dontCheckEnoughDiskSpace = true;
+            }
             return this;
         }
 
