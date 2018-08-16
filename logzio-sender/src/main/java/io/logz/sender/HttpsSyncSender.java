@@ -46,6 +46,7 @@ public class HttpsSyncSender {
             for (FormattedLogMessage currMessage : messages) {
                 os.write(currMessage.getMessage());
             }
+
             // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
             os.close();
             return byteOutputStream.toByteArray();
