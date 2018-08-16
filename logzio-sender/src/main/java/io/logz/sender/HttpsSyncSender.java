@@ -2,9 +2,15 @@ package io.logz.sender;
 
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import java.net.HttpURLConnection;
+
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
