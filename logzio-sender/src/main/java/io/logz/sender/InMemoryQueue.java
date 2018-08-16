@@ -65,16 +65,14 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
 
         public Builder setBufferThreshold(int bufferThreshold) {
             this.bufferThreshold = bufferThreshold;
+            if (bufferThreshold == -1) {
+                dontCheckEnoughMemorySpace = true;
+            }
             return this;
         }
 
         public Builder setReporter(SenderStatusReporter reporter) {
             this.reporter = reporter;
-            return this;
-        }
-
-        public Builder setDontCheckEnoughMemorySpace(boolean check) {
-            this.dontCheckEnoughMemorySpace = check;
             return this;
         }
 
