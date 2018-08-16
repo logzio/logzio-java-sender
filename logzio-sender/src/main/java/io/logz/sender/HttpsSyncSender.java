@@ -2,12 +2,11 @@ package io.logz.sender;
 
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 import java.net.HttpURLConnection;
+import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 public class HttpsSyncSender {
     private final HttpsRequestConfiguration configuration;
@@ -35,8 +34,28 @@ public class HttpsSyncSender {
         return shouldRetry;
     }
 
-    public void sendToLogzio(byte[] lineSeparatedPayload) throws LogzioServerErrorException {
+    private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
+        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
+             OutputStream os = configuration.isCompressRequests() ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
+            for (FormattedLogMessage currMessage : messages) os.write(currMessage.getMessage());
+            // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
+            os.close();
+            return byteOutputStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int sizeInBytes(List<FormattedLogMessage> logMessages) {
+        int totalSize = 0;
+        for (FormattedLogMessage currLog : logMessages) totalSize += currLog.getSize();
+
+        return totalSize;
+    }
+
+    public void sendToLogzio(List<FormattedLogMessage> messages) throws LogzioServerErrorException {
         try {
+            byte[] payload = toNewLineSeparatedByteArray(messages);
             int currentRetrySleep = configuration.getInitialWaitBeforeRetryMS();
 
             for (int currTry = 1; currTry <= configuration.getMaxRetriesAttempts(); currTry++) {
@@ -49,7 +68,7 @@ public class HttpsSyncSender {
                 try {
                     HttpURLConnection conn = (HttpURLConnection) configuration.getLogzioListenerUrl().openConnection();
                     conn.setRequestMethod(configuration.getRequestMethod());
-                    conn.setRequestProperty("Content-length", String.valueOf(lineSeparatedPayload.length));
+                    conn.setRequestProperty("Content-length", String.valueOf(payload.length));
                     conn.setRequestProperty("Content-Type", "text/plain");
                     if (configuration.isCompressRequests()){
                         conn.setRequestProperty("Content-Encoding", "gzip");
@@ -59,7 +78,7 @@ public class HttpsSyncSender {
                     conn.setDoOutput(true);
                     conn.setDoInput(true);
 
-                    conn.getOutputStream().write(lineSeparatedPayload);
+                    conn.getOutputStream().write(payload);
 
                     responseCode = conn.getResponseCode();
                     responseMessage = conn.getResponseMessage();
@@ -93,7 +112,7 @@ public class HttpsSyncSender {
                 }
 
                 if (!shouldRetry) {
-                    reporter.info("Successfully sent bulk to logz.io, size: " + lineSeparatedPayload.length);
+                    reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
                     break;
 
                 } else {
@@ -116,7 +135,7 @@ public class HttpsSyncSender {
             }
 
         } catch (InterruptedException e) {
-            reporter.error("Got interrupted exception");
+            reporter.info("Got interrupted exception");
             Thread.currentThread().interrupt();
         }
     }

@@ -56,7 +56,7 @@ public class HttpsRequestConfiguration {
     private final boolean compressRequests;
 
 
-    public HttpsRequestConfiguration(String logzioToken,
+    private HttpsRequestConfiguration(String logzioToken,
                                      int maxRetriesAttempts, int initialWaitBeforeRetryMS, int socketTimeout,
                                      int connectTimeout, String requestMethod, URL logzioListenerUrl,
                                      boolean compressRequests, String logzioType) throws LogzioParameterErrorException {
@@ -83,6 +83,7 @@ public class HttpsRequestConfiguration {
         private String logzioListenerUrl = "https://listener.logz.io:8071";
         private String logzioToken;
         private boolean compressRequests = false;
+        private SenderStatusReporter reporter;
 
         public Builder setLogzioToken(String logzioToken){
             this.logzioToken = logzioToken;
@@ -131,6 +132,11 @@ public class HttpsRequestConfiguration {
             return this;
         }
 
+        public Builder setReporter(SenderStatusReporter reporter) {
+            this.reporter = reporter;
+            return this;
+        }
+
         private URL createURL(String url) throws MalformedURLException {
                 return logzioType == null ?
                         new URL(url + "/?token=" + logzioToken) :
@@ -142,7 +148,8 @@ public class HttpsRequestConfiguration {
             try {
                 url = createURL(logzioListenerUrl);
             } catch (MalformedURLException e){
-                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover.." + e);
+                reporter.error("Can't connect to Logzio: " + e.getMessage(), e);
+                throw new LogzioParameterErrorException("logzioUrl="+logzioListenerUrl+" token="+logzioToken+" type="+logzioType, "For some reason could not initialize URL. Cant recover..");
             }
             return new HttpsRequestConfiguration(
                     requireNonNull(logzioToken, "logzioToken can't be null"),
