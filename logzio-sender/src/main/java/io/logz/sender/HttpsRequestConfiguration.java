@@ -4,6 +4,7 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
 
@@ -83,7 +84,7 @@ public class HttpsRequestConfiguration {
         private String logzioListenerUrl = "https://listener.logz.io:8071";
         private String logzioToken;
         private boolean compressRequests = false;
-        private SenderStatusReporter reporter;
+        private static final Logger LOGGER = Logger.getLogger( Builder.class.getName() );
 
         public Builder setLogzioToken(String logzioToken){
             this.logzioToken = logzioToken;
@@ -132,11 +133,6 @@ public class HttpsRequestConfiguration {
             return this;
         }
 
-        public Builder setReporter(SenderStatusReporter reporter) {
-            this.reporter = reporter;
-            return this;
-        }
-
         private URL createURL(String url) throws MalformedURLException {
                 return logzioType == null ?
                         new URL(url + "/?token=" + logzioToken) :
@@ -148,7 +144,7 @@ public class HttpsRequestConfiguration {
             try {
                 url = createURL(logzioListenerUrl);
             } catch (MalformedURLException e){
-                reporter.error("Can't connect to Logzio: " + e.getMessage(), e);
+                LOGGER.severe("Can't connect to Logzio: " + e.getMessage());
                 throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
                         + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
             }

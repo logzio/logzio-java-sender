@@ -193,7 +193,7 @@ public class LogzioSender {
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<>();
-        int totalSize = 0;
+        long totalSize = 0;
         while (!logsBuffer.isEmpty()) {
             byte[] message  = logsBuffer.dequeue();
             if (message != null && message.length > 0) {
