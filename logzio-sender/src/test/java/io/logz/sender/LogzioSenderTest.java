@@ -7,11 +7,15 @@ import io.logz.test.TestEnvironment;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
@@ -24,9 +28,11 @@ import static org.junit.Assert.assertTrue;
  * @author MarinaRazumovsky
  */
 
+@RunWith(Parameterized.class)
 public class LogzioSenderTest {
 
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
+    private final LogzioLogsBufferInterface logsBuffer;
     private MockLogzioBulkListener mockListener;
 
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
@@ -53,27 +59,44 @@ public class LogzioSenderTest {
         }
     }
 
+    protected LogzioSenderTest(LogzioLogsBufferInterface buffer){
+        logsBuffer = buffer;
+    }
+
     private String random(int numberOfChars) {
         return UUID.randomUUID().toString().substring(0, numberOfChars-1);
     }
 
-    public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout,
-                                            Integer fsPercentThreshold, File bufferDir, Integer socketTimeout, Integer serverTimeout, int port) throws IOException, LogzioParameterErrorException {
-        return getTestLogzioSender(token, type, drainTimeout, fsPercentThreshold, bufferDir, socketTimeout, serverTimeout, port, false);
-    }
 
-    public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout,
-                                             Integer fsPercentThreshold, File bufferDir, Integer socketTimeout, Integer serverTimeout, int port, boolean compressRequests) throws IOException, LogzioParameterErrorException {
+    private LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout,
+                                             Integer socketTimeout, Integer serverTimeout, Integer fsPercentThreshold,
+                                             File bufferDir, boolean compressRequests)
+            throws LogzioParameterErrorException {
+
         if (bufferDir == null) {
             bufferDir = TestEnvironment.createTempDirectory();
             bufferDir.deleteOnExit();
-
         }
-        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout,fsPercentThreshold, bufferDir,
-                "http://" + mockListener.getHost() + ":" + port, socketTimeout, serverTimeout, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),30, compressRequests);
-        sender.start();
-        return sender;
+
+        LogzioSender logzioSender = LogzioSender
+                .builder()
+                .setLogzioToken(token)
+                .setLogzioType(type)
+                .setSocketTimeout(socketTimeout)
+                .setConnectTimeout(serverTimeout)
+                .setDebug(true)
+                .setBufferDir(bufferDir)
+                .setDrainTimeout(drainTimeout)
+                .setFsPercentThreshold(fsPercentThreshold)
+                .setCompressRequests(compressRequests)
+                .setLogsBuffer(logsBuffer)
+                .setLogzioUrl("http://" + mockListener.getHost() + ":" + mockListener.getPort())
+                .build();
+
+        logzioSender.start();
+        return logzioSender;
     }
+
 
     @Test
     public void simpleAppending() throws Exception {
@@ -85,8 +108,9 @@ public class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, 10 * 1000,10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout,
+                10 * 1000, 10 * 1000, 98,
+                null, false);
 
         testSender.send( createJsonMessage(loggerName, message1));
         testSender.send( createJsonMessage(loggerName, message2));
@@ -107,8 +131,8 @@ public class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, 10 * 1000,10 * 1000, mockListener.getPort(), true);
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                10 * 1000, 98, null,  true);
 
 
         testSender.send( createJsonMessage(loggerName, message1));
@@ -130,8 +154,8 @@ public class LogzioSenderTest {
         String message1 = "Testing first drain - " + random(5);
         String message2 = "And the second drain" + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, 10 * 1000, 10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                10 * 1000, 98,null, false);
 
         testSender.send(createJsonMessage( loggerName, message1));
         sleepSeconds(2 * drainTimeout);
@@ -156,8 +180,9 @@ public class LogzioSenderTest {
         String message1 = "Sending one log - " + random(5);
         String message2 = "And one more important one - " + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, 10 * 1000,10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                10 * 1000, 98,null, false);
+
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
 
@@ -182,8 +207,8 @@ public class LogzioSenderTest {
 
         assertFalse(bufferDir.exists());
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                bufferDir, 10 * 1000,10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout,
+                10 * 1000, 10 * 1000, 98, bufferDir, false);
 
         testSender.send( createJsonMessage(loggerName, message1));
         assertTrue(bufferDir.exists());
@@ -199,8 +224,8 @@ public class LogzioSenderTest {
         File tempDirectory = new File(""+File.separator);
         String message1 = "Just sending something - " + random(5);
         try {
-            LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                    tempDirectory, 10 * 1000, 10 * 1000, mockListener.getPort());
+            LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                    10 * 1000, 98, tempDirectory, false);
         } catch(LogzioParameterErrorException e) {
             assertTrue(e.getMessage().contains(tempDirectory.getAbsolutePath()));
         }
@@ -220,8 +245,8 @@ public class LogzioSenderTest {
                 tempDirectoryThatWillBeInTheSameFsAsTheBuffer.getTotalSpace()) * 100)) - 1;
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeoutSec, fsPercentDrop,
-                null, 10 * 1000, 10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeoutSec, 10 * 1000,
+                10 * 1000, fsPercentDrop,null, false);
 
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
@@ -241,8 +266,8 @@ public class LogzioSenderTest {
         String message2 = "Log during drop - " + random(5);
         String message3 = "Log after drop - " + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type,  drainTimeout, 98,
-                null, 10 * 1000, 10 * 1000, mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type,  drainTimeout, 10 * 1000,
+                10 * 1000, 98,null, false);
 
         testSender.send(createJsonMessage(loggerName, message1));
 
@@ -282,8 +307,8 @@ public class LogzioSenderTest {
 
         int socketTimeout = serverTimeout / 2;
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, socketTimeout, serverTimeout,  mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                10 * 1000,98,null, false);
 
 
         testSender.send(createJsonMessage(loggerName, message1));
@@ -332,8 +357,8 @@ public class LogzioSenderTest {
         String message1 = "Log that will be sent - " +  random(5);
         String message2 = "Log that would get exception and be sent again - " + random(5);
 
-        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 98,
-                null, 10*1000, 10*1000,  mockListener.getPort());
+        LogzioSender testSender = getTestLogzioSender(token, type, drainTimeout, 10 * 1000,
+                10 * 1000,98,null, false);
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
 
