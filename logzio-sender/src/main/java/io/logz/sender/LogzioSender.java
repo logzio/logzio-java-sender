@@ -20,9 +20,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LogzioSender {
-    enum QueueType {
-        INMEMORY, ONDISK;
-    }
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
@@ -40,7 +37,7 @@ public class LogzioSender {
     private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                          String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests, QueueType qtype,
+                         int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests, LogzioLogsBufferInterface logsBuffer,
                          int bufferThreshold)
             throws  LogzioParameterErrorException {
 
@@ -53,18 +50,7 @@ public class LogzioSender {
                 .setConnectTimeout(connectTimeout)
                 .setCompressRequests(compressRequests)
                 .build();
-        this.logsBuffer = qtype  == QueueType.ONDISK ?
-                DiskQueue
-                    .builder()
-                    .setBufferDir(bufferDir)
-                    .setFsPercentThreshold(fsPercentThreshold)
-                    .setReporter(reporter)
-                    .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
-                    .build()
-                : InMemoryQueue.builder()
-                    .setBufferThreshold(bufferThreshold)
-                    .setReporter(reporter)
-                    .build();
+        this.logsBuffer = logsBuffer;
 
         this.drainTimeout = drainTimeout;
         this.debug = debug;
@@ -81,7 +67,7 @@ public class LogzioSender {
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                                     int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests) throws LogzioParameterErrorException {
-        return getLogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests, QueueType.ONDISK, 0);
+        return getLogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests, null, 0);
 
 
     }
@@ -91,7 +77,7 @@ public class LogzioSender {
                                                 String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                 SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                 int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests,
-                                                QueueType qtype, int bufferThreshold) throws LogzioParameterErrorException {
+                                                LogzioLogsBufferInterface buffer, int bufferThreshold) throws LogzioParameterErrorException {
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
@@ -100,9 +86,14 @@ public class LogzioSender {
             if (bufferDir == null) {
                 throw new LogzioParameterErrorException("bufferDir", "null");
             }
+
             LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
                     bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
-                    tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests, qtype, bufferThreshold);
+                    tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests,
+                    buffer == null ?
+                            getDefaultQueue(bufferDir, fsPercentThreshold, reporter, gcPersistedQueueFilesIntervalSeconds)
+                            : buffer,
+                    bufferThreshold);
             logzioSenderInstances.put(logzioType, logzioSender);
             return logzioSender;
         } else {
@@ -118,6 +109,7 @@ public class LogzioSender {
         }
     }
 
+    @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
@@ -237,9 +229,8 @@ public class LogzioSender {
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
         private boolean compressRequests = false;
-        private QueueType qtype = QueueType.INMEMORY;
-        private int gcPersistedQueueFilesIntervalSeconds = 5;
-
+        private int gcPersistedQueueFilesIntervalSeconds = 30;
+        private LogzioLogsBufferInterface buffer = null;
 
         public Builder setInMemoryBufferThreshold(int inMemoryBufferThreshold) {
             this.inMemoryBufferThreshold = inMemoryBufferThreshold;
@@ -307,8 +298,8 @@ public class LogzioSender {
         }
 
 
-        public Builder setQueueType(QueueType qtype) {
-            this.qtype = qtype;
+        public Builder setLogsBuffer(LogzioLogsBufferInterface buffer) {
+            this.buffer = buffer;
             return this;
         }
 
@@ -316,7 +307,6 @@ public class LogzioSender {
             this.gcPersistedQueueFilesIntervalSeconds = gcPersistedQueueFilesIntervalSeconds;
             return this;
         }
-
 
         public LogzioSender build() throws LogzioParameterErrorException {
             return  getLogzioSender(
@@ -333,9 +323,24 @@ public class LogzioSender {
                     tasksExecutor,
                     gcPersistedQueueFilesIntervalSeconds,
                     compressRequests,
-                    qtype,
+                    buffer == null ?
+                            getDefaultQueue(bufferDir, fsPercentThreshold, reporter, gcPersistedQueueFilesIntervalSeconds)
+                            : buffer,
                     inMemoryBufferThreshold);
         }
+    }
+    private static LogzioLogsBufferInterface getDefaultQueue(File bufferDir, int fsPercentThreshold,
+                                                             SenderStatusReporter reporter,
+                                                             int gcPersistedQueueFilesIntervalSeconds)
+            throws LogzioParameterErrorException {
+
+        return DiskQueue
+                .builder()
+                .setBufferDir(bufferDir)
+                .setFsPercentThreshold(fsPercentThreshold)
+                .setReporter(reporter)
+                .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
+                .build();
     }
 
     public static Builder builder(){
