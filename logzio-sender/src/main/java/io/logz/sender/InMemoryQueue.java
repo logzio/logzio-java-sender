@@ -54,6 +54,13 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
         }
     }
 
+    public LogzioLogsBufferInterface getDefaultInMemoryQueue(SenderStatusReporter reporter){
+        return InMemoryQueue
+                .builder()
+                .setReporter(reporter)
+                .build();
+    }
+
     @Override
     public void close() throws IOException {
     }

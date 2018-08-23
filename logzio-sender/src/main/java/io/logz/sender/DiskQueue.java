@@ -75,6 +75,16 @@ public class DiskQueue implements LogzioLogsBufferInterface{
         }
     }
 
+    public LogzioLogsBufferInterface getDefaultDiskQueue(File bufferDir, SenderStatusReporter reporter)
+            throws LogzioParameterErrorException {
+
+        return DiskQueue
+                .builder()
+                .setBufferDir(bufferDir)
+                .setReporter(reporter)
+                .build();
+    }
+
     @Override
     public void close() {
         gcBigQueue();
@@ -84,7 +94,7 @@ public class DiskQueue implements LogzioLogsBufferInterface{
     public static class Builder {
         private boolean dontCheckEnoughDiskSpace = false;
         private int fsPercentThreshold = 98;
-        private int gcPersistedQueueFilesIntervalSeconds = 5;
+        private int gcPersistedQueueFilesIntervalSeconds = 30;
         private File bufferDir;
         private SenderStatusReporter reporter;
 
