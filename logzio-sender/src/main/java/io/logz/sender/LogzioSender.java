@@ -1,17 +1,16 @@
 package io.logz.sender;
 
-import com.bluejeans.common.bigqueue.BigQueue;
 import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
 import java.io.File;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,21 +33,9 @@ public class LogzioSender {
     private final HttpsSyncSender httpsSyncSender;
 
 
-    private LogzioSender(String logzioToken, String logzioType, int drainTimeout,
-                         String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
+    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         boolean compressRequests, LogzioLogsBufferInterface logsBuffer)
-            throws  LogzioParameterErrorException {
-
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                .builder()
-                .setLogzioToken(logzioToken)
-                .setLogzioType(logzioType)
-                .setLogzioListenerUrl(logzioUrl)
-                .setSocketTimeout(socketTimeout)
-                .setConnectTimeout(connectTimeout)
-                .setCompressRequests(compressRequests)
-                .build();
+                         LogzioLogsBufferInterface logsBuffer) {
 
         this.logsBuffer = logsBuffer;
         this.drainTimeout = drainTimeout;
@@ -74,33 +61,39 @@ public class LogzioSender {
                     .setBufferDir(bufferDir)
                     .build();
         }
-        return getLogzioSender(logzioToken, logzioType, drainTimeout, logzioUrl, socketTimeout, connectTimeout,
-                debug, reporter, tasksExecutor, compressRequests, logsBuffer);
+        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+                .builder()
+                .setCompressRequests(compressRequests)
+                .setConnectTimeout(connectTimeout)
+                .setSocketTimeout(socketTimeout)
+                .setLogzioListenerUrl(logzioUrl)
+                .setLogzioType(logzioType)
+                .setLogzioToken(logzioToken)
+                .build();
+        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
 
 
     }
 
-    private static LogzioSender getLogzioSender(String logzioToken, String logzioType,
-                                                int drainTimeout, String logzioUrl, int socketTimeout,
-                                                int connectTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, boolean compressRequests,
-                                                LogzioLogsBufferInterface logsBuffer) throws LogzioParameterErrorException {
+    private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
+                                                ScheduledExecutorService tasksExecutor, LogzioLogsBufferInterface logsBuffer)
+            throws LogzioParameterErrorException {
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
-        LogzioSender logzioSenderInstance = logzioSenderInstances.get(logzioType);
+        LogzioSender logzioSenderInstance = logzioSenderInstances.get(httpsRequestConfiguration.getLogzioType());
         if (logzioSenderInstance == null) {
             if (logsBuffer == null) {
                 throw new LogzioParameterErrorException("logsBuffer", "null");
             }
 
-            LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout,
-                    logzioUrl, socketTimeout, connectTimeout, debug, reporter,
-                    tasksExecutor, compressRequests, logsBuffer);
-            logzioSenderInstances.put(logzioType, logzioSender);
+            LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
+                    tasksExecutor, logsBuffer);
+            logzioSenderInstances.put(httpsRequestConfiguration.getLogzioType(), logzioSender);
             return logzioSender;
         } else {
-            reporter.info("Already found appender configured for type " + logzioType + ", re-using the same one.");
+            reporter.info("Already found appender configured for type " + httpsRequestConfiguration.getLogzioType()
+                    + ", re-using the same one.");
 
             // Sometimes (For example under Spring) the framework closes logback entirely (thos closing the executor)
             // So we need to take a new one instead, as we can grantee that nothing is running now because it is terminated.
@@ -219,45 +212,15 @@ public class LogzioSender {
 
 
     public static class Builder {
-        private String logzioToken;
-        private String logzioType;
-        private int drainTimeout = 5; //sec
-        private String logzioUrl = "https://listener.logz.io:8071";
-        private int socketTimeout = 10 * 1000;
-        private int connectTimeout = 10 * 1000;
         private boolean debug = false;
+        private int drainTimeout = 5; //sec
         private SenderStatusReporter reporter;
-        private ScheduledExecutorService tasksExecutor;
-        private boolean compressRequests = false;
-        private LogzioLogsBufferInterface logsBuffer = null;
-
-        public Builder setLogzioToken(String logzioToken) {
-            this.logzioToken = logzioToken;
-            return this;
-        }
-
-        public Builder setLogzioType(String logzioType) {
-            this.logzioType = logzioType;
-            return this;
-        }
+        private ScheduledExecutorService tasksExecutor = Executors.newSingleThreadScheduledExecutor();
+        private LogzioLogsBufferInterface logsBuffer;
+        private HttpsRequestConfiguration httpsRequestConfiguration;
 
         public Builder setDrainTimeout(int drainTimeout) {
             this.drainTimeout = drainTimeout;
-            return this;
-        }
-
-        public Builder setLogzioUrl(String logzioUrl) {
-            this.logzioUrl = logzioUrl;
-            return this;
-        }
-
-        public Builder setSocketTimeout(int socketTimeout) {
-            this.socketTimeout = socketTimeout;
-            return this;
-        }
-
-        public Builder setConnectTimeout(int connectTimeout) {
-            this.connectTimeout = connectTimeout;
             return this;
         }
 
@@ -271,10 +234,6 @@ public class LogzioSender {
             return this;
         }
 
-        public Builder setCompressRequests(boolean compressRequests) {
-            this.compressRequests = compressRequests;
-            return this;
-        }
 
         public Builder setReporter(SenderStatusReporter reporter) {
             this.reporter = reporter;
@@ -287,21 +246,20 @@ public class LogzioSender {
             return this;
         }
 
+        public Builder setHttpsRequestConfiguration(HttpsRequestConfiguration httpsRequestConfiguration) {
+            this.httpsRequestConfiguration = httpsRequestConfiguration;
+            return this;
+        }
+
         public LogzioSender build() throws LogzioParameterErrorException {
             return  getLogzioSender(
-                    logzioToken,
-                    logzioType,
+                    httpsRequestConfiguration,
                     drainTimeout,
-                    logzioUrl,
-                    socketTimeout,
-                    connectTimeout,
                     debug,
                     reporter,
                     tasksExecutor,
-                    compressRequests,
                     logsBuffer
             );
-
         }
     }
 

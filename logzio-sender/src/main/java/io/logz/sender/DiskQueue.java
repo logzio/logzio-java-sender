@@ -75,16 +75,6 @@ public class DiskQueue implements LogzioLogsBufferInterface{
         }
     }
 
-    public LogzioLogsBufferInterface getDefaultDiskQueue(File bufferDir, SenderStatusReporter reporter)
-            throws LogzioParameterErrorException {
-
-        return DiskQueue
-                .builder()
-                .setBufferDir(bufferDir)
-                .setReporter(reporter)
-                .build();
-    }
-
     @Override
     public void close() {
         gcBigQueue();
