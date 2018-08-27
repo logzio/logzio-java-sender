@@ -37,15 +37,45 @@ public class LogzioLongRunningTests {
 
     @After
     public void stopMockListener() {
-        if (mockListener !=null)
+        if (mockListener != null)
             mockListener.stop();
     }
 
-    public LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout, int gcInterval, int port) throws Exception {
-        File tempDir = TestEnvironment.createTempDirectory();
-        tempDir.deleteOnExit();
-        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, type, drainTimeout, 98, tempDir,
-                "http://" + mockListener.getHost() + ":" + port, 10*1000, 10*1000, true, new LogzioTestStatusReporter(logger), Executors.newScheduledThreadPool(2),gcInterval);
+    private LogzioSender getTestLogzioSender(String token, String type, Integer drainTimeout, int gcInterval, int port) throws Exception {
+        SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
+        HttpsRequestConfiguration conf =
+                HttpsRequestConfiguration
+                        .builder()
+                        .setCompressRequests(true)
+                        .setLogzioToken(token)
+                        .setLogzioType(type)
+                        .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + port)
+                        .build();
+        LogzioLogsBufferInterface logsBuffer =
+                InMemoryQueue
+                        .builder()
+                        .setReporter(reporter)
+                        .build();
+        if (gcInterval > 0) {
+            File tempDir = TestEnvironment.createTempDirectory();
+            tempDir.deleteOnExit();
+            logsBuffer =
+                    DiskQueue
+                            .builder()
+                            .setBufferDir(tempDir)
+                            .setReporter(reporter)
+                            .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
+                            .build();
+        }
+
+        LogzioSender sender =
+                LogzioSender
+                        .builder()
+                        .setDrainTimeout(drainTimeout)
+                        .setReporter(reporter)
+                        .setHttpsRequestConfiguration(conf)
+                        .setLogsBuffer(logsBuffer)
+                        .build();
         sender.start();
         return sender;
     }
@@ -102,4 +132,20 @@ public class LogzioLongRunningTests {
         }
     }
 
+    @Test
+    public void testInMemoryLongRun() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsU";
+        String type = "awesomeTypeInMemory";
+        String loggerName = "InMemoryLongRun";
+        int drainTimeout = 1;
+        LogzioSender logzioSender = getTestLogzioSender(token, type, drainTimeout, -1, mockListener.getPort());
+
+
+        final int msgCount = 1000000;
+        for (int i = 1; i <= msgCount; i++) {
+            logzioSender.send(createJsonMessage(loggerName, "Hello i"));
+        }
+
+        mockListener.assertNumberOfReceivedMsgs(msgCount);
+    }
 }

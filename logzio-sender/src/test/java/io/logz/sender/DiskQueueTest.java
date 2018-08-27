@@ -10,7 +10,7 @@ import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class DiskQueueTest extends LogzioSenderTest {
+public class DiskQueueTest extends LogzioSenderTest{
     private static final int FS_PERCENT_THRESHOLD = 98;
 
     @Override
@@ -23,6 +23,7 @@ public class DiskQueueTest extends LogzioSenderTest {
                 .builder()
                 .setCompressRequests(compressRequests)
                 .setConnectTimeout(serverTimeout)
+                .setSocketTimeout(socketTimeout)
                 .setLogzioToken(token)
                 .setLogzioType(type)
                 .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())

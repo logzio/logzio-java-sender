@@ -6,22 +6,14 @@ import io.logz.test.TestEnvironment;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 
-import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 /**
  * @author MarinaRazumovsky
@@ -249,8 +241,8 @@ public abstract class LogzioSenderTest {
 
         int socketTimeout = serverTimeout / 2;
 
-        LogzioSender testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
-                10 * 1000,null, false);
+        LogzioSender testSender = createLogzioSender(token, type, drainTimeout, socketTimeout,
+                serverTimeout,null, false);
 
 
         testSender.send(createJsonMessage(loggerName, message1));
