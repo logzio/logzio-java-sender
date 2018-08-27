@@ -14,6 +14,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .builder()
                 .setCompressRequests(compressRequests)
                 .setConnectTimeout(serverTimeout)
+                .setSocketTimeout(socketTimeout)
                 .setLogzioToken(token)
                 .setLogzioType(type)
                 .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())
@@ -32,6 +33,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .setDrainTimeout(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
                 .setLogsBuffer(logsBuffer)
+                .setReporter(getReporter())
                 .build();
 
         logzioSender.start();
