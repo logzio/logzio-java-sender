@@ -25,19 +25,18 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
             logsBuffer.add(log);
             size.getAndAdd(log.length);
         }
-
     }
 
     @Override
     public byte[] dequeue() {
         byte[] log =  logsBuffer.remove();
-        size.getAndAdd(-logsBuffer.size());
+        size.getAndAdd(-log.length);
         return log;
     }
 
     @Override
     public boolean isEmpty() {
-        return logsBuffer.size() == 0;
+        return logsBuffer.isEmpty();
     }
 
     private boolean isEnoughsSpace() {

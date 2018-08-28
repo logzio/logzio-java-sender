@@ -2,6 +2,7 @@ package io.logz.sender;
 
 import com.bluejeans.common.bigqueue.BigQueue;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
+
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

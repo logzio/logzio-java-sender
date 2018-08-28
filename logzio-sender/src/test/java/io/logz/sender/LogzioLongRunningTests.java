@@ -15,10 +15,10 @@ import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import static org.assertj.core.api.Assertions.assertThat;
+
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author MarinaRazumovsky
@@ -45,37 +45,39 @@ public class LogzioLongRunningTests {
         SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
         HttpsRequestConfiguration conf =
                 HttpsRequestConfiguration
-                        .builder()
-                        .setCompressRequests(true)
-                        .setLogzioToken(token)
-                        .setLogzioType(type)
-                        .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + port)
-                        .build();
+                    .builder()
+                    .setCompressRequests(true)
+                    .setLogzioToken(token)
+                    .setLogzioType(type)
+                    .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + port)
+                    .build();
         LogzioLogsBufferInterface logsBuffer =
                 InMemoryQueue
-                        .builder()
-                        .setReporter(reporter)
-                        .build();
+                    .builder()
+                    .setReporter(reporter)
+                    .setBufferThreshold(-1)
+                    .build();
         if (gcInterval > 0) {
             File tempDir = TestEnvironment.createTempDirectory();
             tempDir.deleteOnExit();
             logsBuffer =
-                    DiskQueue
-                            .builder()
-                            .setBufferDir(tempDir)
-                            .setReporter(reporter)
-                            .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
-                            .build();
+                DiskQueue
+                    .builder()
+                    .setBufferDir(tempDir)
+                    .setReporter(reporter)
+                    .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
+                    .build();
         }
 
         LogzioSender sender =
                 LogzioSender
-                        .builder()
-                        .setDrainTimeout(drainTimeout)
-                        .setReporter(reporter)
-                        .setHttpsRequestConfiguration(conf)
-                        .setLogsBuffer(logsBuffer)
-                        .build();
+                    .builder()
+                    .setDrainTimeout(drainTimeout)
+                    .setReporter(reporter)
+                    .setHttpsRequestConfiguration(conf)
+                    .setLogsBuffer(logsBuffer)
+                    .setDebug(true)
+                    .build();
         sender.start();
         return sender;
     }
@@ -87,14 +89,27 @@ public class LogzioLongRunningTests {
         String loggerName = "deadlockLogger";
         int drainTimeout = 1;
         Integer gcInterval = 1;
+        final int msgCount = 100000000;
         LogzioSender logzioSender = getTestLogzioSender(token, type, drainTimeout, gcInterval, mockListener.getPort());
+        sendLogs(loggerName, logzioSender, msgCount);
+    }
 
+    @Test
+    public void testInMemoryLongRun() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsU";
+        String type = "awesomeTypeInMemory";
+        String loggerName = "InMemoryLongRun";
+        int drainTimeout = 1;
+        final int msgCount = 100000;
+        LogzioSender logzioSender = getTestLogzioSender(token, type, drainTimeout, -1, mockListener.getPort());
+        sendLogs(loggerName, logzioSender, msgCount);
+    }
 
+    private void sendLogs(String loggerName, LogzioSender logzioSender, int msgCount) throws InterruptedException {
         List<Thread> threads = new ArrayList<>();
         try {
             int threadCount = 10;
             CountDownLatch countDownLatch = new CountDownLatch(threadCount);
-            final int msgCount = 100000000;
             for (int j = 1; j < threadCount; j++) {
                 Thread thread = new Thread(() -> {
                     for (int i = 1; i <= msgCount; i++) {
@@ -130,22 +145,5 @@ public class LogzioLongRunningTests {
         } finally {
             threads.forEach(Thread::interrupt);
         }
-    }
-
-    @Test
-    public void testInMemoryLongRun() throws Exception {
-        String token = "aBcDeFgHiJkLmNoPqRsU";
-        String type = "awesomeTypeInMemory";
-        String loggerName = "InMemoryLongRun";
-        int drainTimeout = 1;
-        LogzioSender logzioSender = getTestLogzioSender(token, type, drainTimeout, -1, mockListener.getPort());
-
-
-        final int msgCount = 1000000;
-        for (int i = 1; i <= msgCount; i++) {
-            logzioSender.send(createJsonMessage(loggerName, "Hello i"));
-        }
-
-        mockListener.assertNumberOfReceivedMsgs(msgCount);
     }
 }

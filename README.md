@@ -30,9 +30,65 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
+| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
+| **bufferThreshold**       | *1024 * 1024 * 100*                                | The amount of memory disk we are allowed to use for the memory queue |
+
 
 
 ### Code Example
+
+From version 1.0.15 we use a builder to get Logz.io sender/ 
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.gson.JsonObject;
+
+public class LogzioSenderExample {
+
+    public static void main(String[] args) {
+        
+        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+                        .builder()
+                        .setCompressRequests(true)
+                        .setConnectTimeout(10*1000)
+                        .setSocketTimeout(10*1000)
+                        .setLogzioListenerUrl("https://listener.logz.io:8071")
+                        .setLogzioType("javaSenderType")
+                        .setLogzioToken("123456789")
+                        .build();
+        //disk queue exmple
+        LogzioLogsBufferInterface logsBuffer = DiskQueue
+                        .builder()
+                        .setGcPersistedQueueFilesIntervalSeconds(30)
+                        .setReporter("<your_reporter_implementation>")
+                        .setFsPercentThreshold(98)
+                        .setBufferDir("myDir")
+                        .build();
+        
+        // in memory queue example
+        LogzioLogsBufferInterface logsBuffer  = InMemoryQueue
+                        .builder()
+                        .setReporter("<your_reporter_implementation>")
+                        .setBufferThreshold(1024 * 1024 * 100) //100MB
+                        .build();
+        
+        LogzioSender logzioSender = LogzioSender
+                        .builder()
+                        .setDebug(false)
+                        .setDrainTimeout(5)
+                        .setHttpsRequestConfiguration(httpsRequestConfiguration)
+                        .setLogsBuffer(logsBuffer)
+                        .setReporter("<your_reporter_implementation>")
+                        .build();
+        
+        sender.start();
+        JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
+        sender.send(jsonMessage);
+    }
+}
+```
+
+Until version 1.0.14
 ```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
