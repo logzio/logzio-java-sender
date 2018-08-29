@@ -32,12 +32,13 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
 | **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 | **bufferThreshold**       | *1024 * 1024 * 100*                                | The amount of memory disk we are allowed to use for the memory queue |
+| **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
+
 
 
 
 ### Code Example
-
-From version 1.0.15 we use a builder to get Logz.io sender/ 
+From version 1.0.15 we use a builder to get Logz.io sender
 ```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,7 @@ public class LogzioSenderExample {
                         .setLogzioType("javaSenderType")
                         .setLogzioToken("123456789")
                         .build();
-        //disk queue exmple
+        //disk queue example
         LogzioLogsBufferInterface logsBuffer = DiskQueue
                         .builder()
                         .setGcPersistedQueueFilesIntervalSeconds(30)
@@ -109,6 +110,10 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.12 - 1.0.15
+   - separating https request from the sender
+   - add implementation for in memory queue
+   - add a builder for sender, http configuration, and buffers implementation  
  - 1.0.11 fix shaded
  - 1.0.10 add gzip compression
  - 1.0.9 add auto deploy
