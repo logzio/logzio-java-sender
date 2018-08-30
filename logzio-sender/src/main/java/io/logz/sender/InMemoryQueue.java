@@ -1,5 +1,7 @@
 package io.logz.sender;
 
+import io.logz.sender.exceptions.LogzioParameterErrorException;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,7 +13,11 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
     private final SenderStatusReporter reporter;
     private AtomicInteger size;
 
-    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter) {
+    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter)
+            throws LogzioParameterErrorException {
+        if (reporter == null) {
+            throw new LogzioParameterErrorException("reporter=null", " Please provide a reporter");
+        }
         logsBuffer = new ConcurrentLinkedQueue<>();
         this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
         this.bufferThreshold = bufferThreshold;
@@ -75,7 +81,7 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public InMemoryQueue build() {
+        public InMemoryQueue build() throws LogzioParameterErrorException{
             return new InMemoryQueue(dontCheckEnoughMemorySpace, bufferThreshold, reporter);
         }
     }

@@ -34,22 +34,34 @@ public class LogzioSender {
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogzioLogsBufferInterface logsBuffer) {
+                         LogzioLogsBufferInterface logsBuffer) throws LogzioParameterErrorException {
+
+        if (logsBuffer == null || reporter == null || httpsRequestConfiguration == null) {
+            throw new LogzioParameterErrorException("logsBuffer=" + logsBuffer + " reporter=" + reporter
+                    + " httpsRequestConfiguration=" + httpsRequestConfiguration ,
+                    "For some reason could not initialize URL. Cant recover..");
+        }
 
         this.logsBuffer = logsBuffer;
         this.drainTimeout = drainTimeout;
         this.debug = debug;
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
-        this.tasksExecutor = tasksExecutor;
+        this.tasksExecutor = tasksExecutor == null ? Executors.newSingleThreadScheduledExecutor() : tasksExecutor;
         debug("Created new LogzioSender class");
     }
 
     @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
-                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests) throws LogzioParameterErrorException {
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
+                                                                    int drainTimeout, int fsPercentThreshold,
+                                                                    File bufferDir, String logzioUrl, int socketTimeout,
+                                                                    int connectTimeout, boolean debug,
+                                                                    SenderStatusReporter reporter,
+                                                                    ScheduledExecutorService tasksExecutor,
+                                                                    int gcPersistedQueueFilesIntervalSeconds,
+                                                                    boolean compressRequests)
+            throws LogzioParameterErrorException {
+
         LogzioLogsBufferInterface logsBuffer = null;
         if (bufferDir != null) {
             logsBuffer = DiskQueue
@@ -72,6 +84,14 @@ public class LogzioSender {
         return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
 
 
+    }
+
+    @Deprecated
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
+                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
+                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
+        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
@@ -102,14 +122,6 @@ public class LogzioSender {
             }
             return logzioSenderInstance;
         }
-    }
-
-    @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
-                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
     }
 
     public void start() {
@@ -214,7 +226,7 @@ public class LogzioSender {
         private boolean debug = false;
         private int drainTimeout = 5; //sec
         private SenderStatusReporter reporter;
-        private ScheduledExecutorService tasksExecutor = Executors.newSingleThreadScheduledExecutor();
+        private ScheduledExecutorService tasksExecutor;
         private LogzioLogsBufferInterface logsBuffer;
         private HttpsRequestConfiguration httpsRequestConfiguration;
 

@@ -96,7 +96,7 @@ public class LogzioLongRunningTests {
 
     @Test
     public void testInMemoryLongRun() throws Exception {
-        String token = "aBcDeFgHiJkLmNoPqRsU";
+        String token = "aBcDeFgHiJkLmNoPqRsUInMemoryLongRun";
         String type = "awesomeTypeInMemory";
         String loggerName = "InMemoryLongRun";
         int drainTimeout = 1;
