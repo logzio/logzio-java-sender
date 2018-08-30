@@ -24,6 +24,9 @@ public class DiskQueue implements LogzioLogsBufferInterface{
         if (bufferDir == null) {
             throw new LogzioParameterErrorException("bufferDir", "value is null.");
         }
+        if (reporter == null) {
+            throw new LogzioParameterErrorException("reporter", "value is null.");
+        }
         String dir = bufferDir.getAbsoluteFile().getParent();
         String queueNameDir = bufferDir.getName();
         if (dir == null || queueNameDir.isEmpty() ) {

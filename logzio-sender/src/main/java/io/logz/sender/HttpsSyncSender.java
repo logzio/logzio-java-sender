@@ -17,7 +17,7 @@ public class HttpsSyncSender {
     private final SenderStatusReporter reporter;
 
 
-    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter){
+    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter) {
         this.configuration = configuration;
         this.reporter = reporter;
     }

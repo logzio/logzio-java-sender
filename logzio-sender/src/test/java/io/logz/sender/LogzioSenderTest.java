@@ -174,8 +174,6 @@ public abstract class LogzioSenderTest {
         int drainTimeoutSec = 1;
         File tempDirectoryThatWillBeInTheSameFsAsTheBuffer = TestEnvironment.createTempDirectory();
         tempDirectoryThatWillBeInTheSameFsAsTheBuffer.deleteOnExit();
-        int fsPercentDrop = 100 - ((int) (((double) tempDirectoryThatWillBeInTheSameFsAsTheBuffer.getUsableSpace() /
-                tempDirectoryThatWillBeInTheSameFsAsTheBuffer.getTotalSpace()) * 100)) - 1;
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
         LogzioLogsBufferInterface logsBuffer = createZeroThresholdBuffer();
