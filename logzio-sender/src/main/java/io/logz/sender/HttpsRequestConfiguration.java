@@ -61,7 +61,6 @@ public class HttpsRequestConfiguration {
                 new URL(url + "/?token=" + logzioToken + "&type=" + logzioType);
     }
 
-
     private HttpsRequestConfiguration(String logzioToken,
                                      int maxRetriesAttempts, int initialWaitBeforeRetryMS, int socketTimeout,
                                      int connectTimeout, String requestMethod, String logzioListenerUrl,
@@ -100,7 +99,6 @@ public class HttpsRequestConfiguration {
         private String logzioListenerUrl = "https://listener.logz.io:8071";
         private String logzioToken;
         private boolean compressRequests = false;
-        private SenderStatusReporter reporter;
 
         public Builder setLogzioToken(String logzioToken){
             this.logzioToken = logzioToken;

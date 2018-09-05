@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LogzioSender {
+public class LogzioSender  {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
@@ -30,7 +30,6 @@ public class LogzioSender {
     private ScheduledExecutorService tasksExecutor;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsSyncSender httpsSyncSender;
-
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
@@ -47,7 +46,7 @@ public class LogzioSender {
         this.debug = debug;
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
-        this.tasksExecutor = tasksExecutor == null ? Executors.newSingleThreadScheduledExecutor() : tasksExecutor;
+        this.tasksExecutor = tasksExecutor;
         debug("Created new LogzioSender class");
     }
 
@@ -62,10 +61,12 @@ public class LogzioSender {
                                                                     boolean compressRequests)
             throws LogzioParameterErrorException {
 
+
         LogzioLogsBufferInterface logsBuffer = null;
         if (bufferDir != null) {
             logsBuffer = DiskQueue
-                    .builder()
+                    .builder(null, null)
+                    .setDiskSpaceTasks(tasksExecutor)
                     .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
                     .setReporter(reporter)
                     .setFsPercentThreshold(fsPercentThreshold)
@@ -82,8 +83,6 @@ public class LogzioSender {
                 .setLogzioToken(logzioToken)
                 .build();
         return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
-
-
     }
 
     @Deprecated
@@ -227,7 +226,8 @@ public class LogzioSender {
         private int drainTimeout = 5; //sec
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
-        private LogzioLogsBufferInterface logsBuffer;
+        private InMemoryQueue.Builder inMemoryQueueBuilder;
+        private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
 
         public Builder setDrainTimeout(int drainTimeout) {
@@ -251,15 +251,25 @@ public class LogzioSender {
             return this;
         }
 
-
-        public Builder setLogsBuffer(LogzioLogsBufferInterface logsBuffer) {
-            this.logsBuffer = logsBuffer;
-            return this;
-        }
-
         public Builder setHttpsRequestConfiguration(HttpsRequestConfiguration httpsRequestConfiguration) {
             this.httpsRequestConfiguration = httpsRequestConfiguration;
             return this;
+        }
+
+        public InMemoryQueue.Builder WithInMemoryQueue() {
+            return InMemoryQueue.builder(this);
+        }
+
+        public DiskQueue.Builder WithDiskMemoryQueue() {
+            return DiskQueue.builder(this, tasksExecutor);
+        }
+
+        void setDiskQueueBuilder(DiskQueue.Builder diskQueueBuilder) {
+            this.diskQueueBuilder = diskQueueBuilder;
+        }
+
+        void setInMemoryQueueBuilder(InMemoryQueue.Builder inMemoryQueueBuilder) {
+            this.inMemoryQueueBuilder = inMemoryQueueBuilder;
         }
 
         public LogzioSender build() throws LogzioParameterErrorException {
@@ -269,8 +279,21 @@ public class LogzioSender {
                     debug,
                     reporter,
                     tasksExecutor,
-                    logsBuffer
+                    getLogsBuffer()
             );
+        }
+
+        private LogzioLogsBufferInterface getLogsBuffer() throws LogzioParameterErrorException {
+            LogzioLogsBufferInterface logsBuffer = null;
+            if (diskQueueBuilder != null) {
+                diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
+                diskQueueBuilder.setReporter(reporter);
+                logsBuffer = diskQueueBuilder.build();
+            }else if (inMemoryQueueBuilder != null) {
+                inMemoryQueueBuilder.setReporter(reporter);
+                logsBuffer = inMemoryQueueBuilder.build();
+            }
+            return logsBuffer;
         }
     }
 

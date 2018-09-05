@@ -1,9 +1,5 @@
 package io.logz.sender;
 
-/**
- * @author MarinaRazumovsky
- */
-
 public interface SenderStatusReporter {
 
 

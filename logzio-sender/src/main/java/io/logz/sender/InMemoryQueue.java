@@ -15,14 +15,19 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
 
     private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter)
             throws LogzioParameterErrorException {
-        if (reporter == null) {
-            throw new LogzioParameterErrorException("reporter=null", " Please provide a reporter");
-        }
+
         logsBuffer = new ConcurrentLinkedQueue<>();
         this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
         this.bufferThreshold = bufferThreshold;
         this.reporter = reporter;
         this.size = new AtomicInteger();
+        validateParameters();
+    }
+
+    private void validateParameters() throws LogzioParameterErrorException {
+        if (reporter == null) {
+            throw new LogzioParameterErrorException("reporter", "value is null.");
+        }
     }
 
     @Override
@@ -67,6 +72,11 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
         private int bufferThreshold = 1024 * 1024 * 100; //100MB memory limit
         private SenderStatusReporter reporter;
         private boolean dontCheckEnoughMemorySpace = false;
+        private LogzioSender.Builder context;
+
+        Builder(LogzioSender.Builder context) {
+            this.context = context;
+        }
 
         public Builder setBufferThreshold(int bufferThreshold) {
             this.bufferThreshold = bufferThreshold;
@@ -76,9 +86,14 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public Builder setReporter(SenderStatusReporter reporter) {
+        Builder setReporter(SenderStatusReporter reporter) {
             this.reporter = reporter;
             return this;
+        }
+
+        public LogzioSender.Builder EndInMemoryQueue() {
+            context.setInMemoryQueueBuilder(this);
+            return context;
         }
 
         public InMemoryQueue build() throws LogzioParameterErrorException{
@@ -86,7 +101,7 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
         }
     }
 
-    public static Builder builder(){
-        return new Builder();
+    public static Builder builder(LogzioSender.Builder context){
+        return new Builder(context);
     }
 }
