@@ -1,15 +1,22 @@
 package io.logz.sender;
 
 import io.logz.sender.exceptions.LogzioParameterErrorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ScheduledExecutorService;
 
 public class InMemoryQueueTest extends LogzioSenderTest {
+    private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
+    private boolean zeroThresholdBuffer = false;
 
     @Override
     protected LogzioSender createLogzioSender(String token, String type, Integer drainTimeout,
                                               Integer socketTimeout, Integer serverTimeout,
-                                              LogzioLogsBufferInterface buffer, boolean compressRequests)
+                                              ScheduledExecutorService tasks, boolean compressRequests)
             throws LogzioParameterErrorException {
 
+        LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
         HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
                 .builder()
                 .setCompressRequests(compressRequests)
@@ -20,20 +27,18 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())
                 .build();
 
-        LogzioLogsBufferInterface logsBuffer = buffer == null ?
-                InMemoryQueue
-                        .builder()
-                        .setReporter(getReporter())
-                        .build()
-                : buffer;
+        int bufferThreshold = zeroThresholdBuffer ? 0 : 100 * 1024 * 1024;
 
         LogzioSender logzioSender = LogzioSender
                 .builder()
-                .setDebug(true)
+                .setDebug(false)
+                .setTasksExecutor(tasks)
                 .setDrainTimeout(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                .setLogsBuffer(logsBuffer)
-                .setReporter(getReporter())
+                .WithInMemoryQueue()
+                    .setBufferThreshold(bufferThreshold)
+                .EndInMemoryQueue()
+                .setReporter(logy)
                 .build();
 
         logzioSender.start();
@@ -41,11 +46,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     }
 
     @Override
-    protected LogzioLogsBufferInterface createZeroThresholdBuffer() throws LogzioParameterErrorException {
-        return InMemoryQueue
-                .builder()
-                .setReporter(getReporter())
-                .setBufferThreshold(0)
-                .build();
+    protected void setZeroThresholdBuffer() throws LogzioParameterErrorException {
+        this.zeroThresholdBuffer = true;
     }
 }

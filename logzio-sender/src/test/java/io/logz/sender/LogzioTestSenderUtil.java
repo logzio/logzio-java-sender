@@ -2,9 +2,6 @@ package io.logz.sender;
 
 import com.google.gson.JsonObject;
 
-/**
- * @author MarinaRazumovsky
- */
 public class LogzioTestSenderUtil {
 
     public static final String LOGLEVEL = "info";
