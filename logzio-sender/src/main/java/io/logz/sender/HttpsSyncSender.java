@@ -115,7 +115,7 @@ public class HttpsSyncSender {
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
-                if (!shouldRetry) {
+                if (!shouldRetry && responseCode == HttpURLConnection.HTTP_OK) {
                     reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
                     break;
 
