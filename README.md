@@ -48,7 +48,7 @@ public class LogzioSenderExample {
 
     public static void main(String[] args) {
         
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+        HttpsRequestConfiguration conf = HttpsRequestConfiguration
                         .builder()
                         .setCompressRequests(true)
                         .setConnectTimeout(10*1000)
@@ -57,31 +57,37 @@ public class LogzioSenderExample {
                         .setLogzioType("javaSenderType")
                         .setLogzioToken("123456789")
                         .build();
-        //disk queue example
-        LogzioLogsBufferInterface logsBuffer = DiskQueue
-                        .builder()
-                        .setGcPersistedQueueFilesIntervalSeconds(30)
-                        .setReporter("<your_reporter_implementation>")
-                        .setFsPercentThreshold(98)
-                        .setBufferDir("myDir")
-                        .build();
         
-        // in memory queue example
-        LogzioLogsBufferInterface logsBuffer  = InMemoryQueue
-                        .builder()
-                        .setReporter("<your_reporter_implementation>")
-                        .setBufferThreshold(1024 * 1024 * 100) //100MB
-                        .build();
-        
+        // Use one of the following implementations
+        // 1) disk queue example 
         LogzioSender logzioSender = LogzioSender
                         .builder()
                         .setDebug(false)
-                        .setDrainTimeout(5)
+                        .setTasksExecutor(Executors.newScheduledThreadPool(3))
+                        .setDrainTimeout(drainTimeout)
+                        .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                        .setLogsBuffer(logsBuffer)
-                        .setReporter("<your_reporter_implementation>")
+                        .WithDiskMemoryQueue()
+                            .setBufferDir(bufferDir)
+                            .setFsPercentThreshold(fsPercentThreshold)
+                            .setCheckDiskSpaceInterval(1000)
+                            .setGcPersistedQueueFilesIntervalSeconds(30)
+                        .EndDiskQueue()
                         .build();
         
+        // 2) in memory queue example
+        LogzioSender logzioSender = LogzioSender
+                        .builder()
+                        .setDebug(false)
+                        .setTasksExecutor(Executors.newScheduledThreadPool(3))
+                        .setDrainTimeout(drainTimeout)
+                        .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
+                        .setHttpsRequestConfiguration(conf)
+                        .WithInMemoryQueue()
+                            .setBufferThreshold(1024 * 1024 * 100) //100MB
+                        .EndInMemoryQueue()
+                        .build();
+
         sender.start();
         JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
         sender.send(jsonMessage);
