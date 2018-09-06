@@ -42,7 +42,7 @@ public class LogzioLongRunningTests {
         tasks.shutdownNow();
     }
 
-    private HttpsRequestConfiguration getHttpsRequestConfiguration(String token, String type, Integer drainTimeout, Integer port) throws LogzioParameterErrorException {
+    private HttpsRequestConfiguration getHttpsRequestConfiguration(String token, String type, Integer port) throws LogzioParameterErrorException {
         return HttpsRequestConfiguration
                 .builder()
                 .setCompressRequests(true)
@@ -63,7 +63,7 @@ public class LogzioLongRunningTests {
         File tempDir = TestEnvironment.createTempDirectory();
         tempDir.deleteOnExit();
         SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
-        HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, drainTimeout, mockListener.getPort());
+        HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, mockListener.getPort());
         LogzioSender logzioSender =
                 LogzioSender
                         .builder()
@@ -87,7 +87,7 @@ public class LogzioLongRunningTests {
         String loggerName = "InMemoryLongRun";
         int drainTimeout = 1;
         final int msgCount = 100000;
-        HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, drainTimeout, mockListener.getPort());
+        HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, mockListener.getPort());
         SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
         LogzioSender logzioSender =
                 LogzioSender
@@ -112,7 +112,7 @@ public class LogzioLongRunningTests {
             for (int j = 1; j < threadCount; j++) {
                 Thread thread = new Thread(() -> {
                     for (int i = 1; i <= msgCount; i++) {
-                        logzioSender.send(createJsonMessage(loggerName, "Hello i"));
+                        logzioSender.send(createJsonMessage(loggerName, "Hello " + i));
                         if (Thread.interrupted()) {
                             logger.info("Stopping thread - interrupted");
                             break;
