@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ScheduledExecutorService;
 
-public class InMemoryQueueTest extends LogzioSenderTest {
+public class InMemoryLogsBufferTest extends LogzioSenderTest {
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
     private boolean zeroThresholdBuffer = false;
 
@@ -35,9 +35,9 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .setTasksExecutor(tasks)
                 .setDrainTimeout(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                .WithInMemoryQueue()
+                .WithInMemoryLogsBuffer()
                     .setBufferThreshold(bufferThreshold)
-                .EndInMemoryQueue()
+                .EndInMemoryLogsBuffer()
                 .setReporter(logy)
                 .build();
 

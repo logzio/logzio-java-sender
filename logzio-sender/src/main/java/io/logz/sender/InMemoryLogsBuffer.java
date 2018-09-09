@@ -6,14 +6,16 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class InMemoryQueue implements LogzioLogsBufferInterface{
+public class InMemoryLogsBuffer implements LogzioLogsBufferInterface {
+    private static final int ONE_MEGA_BYTE_IN_BYTES = 1024 * 1024;
+    public static int DONT_LIMIT_BUFFER_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;
     private final boolean dontCheckEnoughMemorySpace;
     private final int bufferThreshold;
     private final SenderStatusReporter reporter;
     private AtomicInteger size;
 
-    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter)
+    private InMemoryLogsBuffer(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter)
             throws LogzioParameterErrorException {
 
         logsBuffer = new ConcurrentLinkedQueue<>();
@@ -21,18 +23,11 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
         this.bufferThreshold = bufferThreshold;
         this.reporter = reporter;
         this.size = new AtomicInteger();
-        validateParameters();
-    }
-
-    private void validateParameters() throws LogzioParameterErrorException {
-        if (reporter == null) {
-            throw new LogzioParameterErrorException("reporter", "value is null.");
-        }
     }
 
     @Override
     public void enqueue(byte[] log) {
-        if(isEnoughsSpace()) {
+        if(isEnoughSpace()) {
             logsBuffer.add(log);
             size.getAndAdd(log.length);
         }
@@ -50,18 +45,17 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
         return logsBuffer.isEmpty();
     }
 
-    private boolean isEnoughsSpace() {
+    private boolean isEnoughSpace() {
         if (dontCheckEnoughMemorySpace) {
             return true;
         }
 
         if (size.get() >= bufferThreshold ) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
-                    bufferThreshold/(1024 * 1024)));
+                    bufferThreshold/(ONE_MEGA_BYTE_IN_BYTES)));
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
 
     @Override
@@ -69,7 +63,7 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
     }
 
     public static class Builder {
-        private int bufferThreshold = 1024 * 1024 * 100; //100MB memory limit
+        private int bufferThreshold = ONE_MEGA_BYTE_IN_BYTES * 100; //100MB memory limit
         private SenderStatusReporter reporter;
         private boolean dontCheckEnoughMemorySpace = false;
         private LogzioSender.Builder context;
@@ -80,7 +74,7 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
 
         public Builder setBufferThreshold(int bufferThreshold) {
             this.bufferThreshold = bufferThreshold;
-            if (bufferThreshold == -1) {
+            if (bufferThreshold == DONT_LIMIT_BUFFER_SPACE) {
                 dontCheckEnoughMemorySpace = true;
             }
             return this;
@@ -91,13 +85,13 @@ public class InMemoryQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public LogzioSender.Builder EndInMemoryQueue() {
-            context.setInMemoryQueueBuilder(this);
+        public LogzioSender.Builder EndInMemoryLogsBuffer() {
+            context.setInMemoryLogsBufferBuilder(this);
             return context;
         }
 
-        public InMemoryQueue build() throws LogzioParameterErrorException{
-            return new InMemoryQueue(dontCheckEnoughMemorySpace, bufferThreshold, reporter);
+        public InMemoryLogsBuffer build() throws LogzioParameterErrorException{
+            return new InMemoryLogsBuffer(dontCheckEnoughMemorySpace, bufferThreshold, reporter);
         }
     }
 

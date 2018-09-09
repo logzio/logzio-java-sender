@@ -83,9 +83,9 @@ public class LogzioSenderExample {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
-                        .WithInMemoryQueue()
+                        .WithInMemoryLogsBuffer()
                             .setBufferThreshold(1024 * 1024 * 100) //100MB
-                        .EndInMemoryQueue()
+                        .EndInMemoryLogsBuffer()
                         .build();
 
         sender.start();

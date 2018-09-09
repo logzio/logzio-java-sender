@@ -96,9 +96,9 @@ public class LogzioLongRunningTests {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(reporter)
                         .setHttpsRequestConfiguration(conf)
-                        .WithInMemoryQueue()
-                        .setBufferThreshold(-1)
-                        .EndInMemoryQueue()
+                        .WithInMemoryLogsBuffer()
+                        .setBufferThreshold(InMemoryLogsBuffer.DONT_LIMIT_BUFFER_SPACE)
+                        .EndInMemoryLogsBuffer()
                         .build();
         logzioSender.start();
         sendLogs(loggerName, logzioSender, msgCount);
