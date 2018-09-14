@@ -1,12 +1,10 @@
 package io.logz.sender;
 
-import com.bluejeans.common.bigqueue.BigQueue;
 import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
 import java.io.File;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,85 +17,101 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LogzioSender {
+public class LogzioSender  {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
-    private final BigQueue logsBuffer;
-    private final File queueDirectory;
-    private boolean dontCheckEnoughDiskSpace = false;
+    private final LogzioLogsBufferInterface logsBuffer;
     private final int drainTimeout;
-    private final int fsPercentThreshold;
     private final boolean debug;
     private final SenderStatusReporter reporter;
     private ScheduledExecutorService tasksExecutor;
-    private final int gcPersistedQueueFilesIntervalSeconds;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsSyncSender httpsSyncSender;
 
-    private LogzioSender(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
-                         String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
+    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests)
-            throws  LogzioParameterErrorException {
+                         LogzioLogsBufferInterface logsBuffer) throws LogzioParameterErrorException {
 
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                .builder()
-                .setLogzioToken(logzioToken)
-                .setLogzioType(logzioType)
-                .setLogzioListenerUrl(logzioUrl)
-                .setSocketTimeout(socketTimeout)
-                .setConnectTimeout(connectTimeout)
-                .setCompressRequests(compressRequests)
-                .build();
+        if (logsBuffer == null || reporter == null || httpsRequestConfiguration == null) {
+            throw new LogzioParameterErrorException("logsBuffer=" + logsBuffer + " reporter=" + reporter
+                    + " httpsRequestConfiguration=" + httpsRequestConfiguration ,
+                    "For some reason could not initialize URL. Cant recover..");
+        }
 
+        this.logsBuffer = logsBuffer;
         this.drainTimeout = drainTimeout;
-        this.fsPercentThreshold = fsPercentThreshold;
         this.debug = debug;
-        this.gcPersistedQueueFilesIntervalSeconds = gcPersistedQueueFilesIntervalSeconds;
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
-        if (this.fsPercentThreshold == -1) {
-            dontCheckEnoughDiskSpace = true;
-        }
-        // divide bufferDir to dir and queue name
-        if (bufferDir == null) {
-            throw new LogzioParameterErrorException("bufferDir", "value is null.");
-        }
-        String dir = bufferDir.getAbsoluteFile().getParent();
-        String queueNameDir = bufferDir.getName();
-        if (dir == null || queueNameDir.isEmpty() ) {
-            throw new LogzioParameterErrorException("bufferDir", " value is empty: "+bufferDir.getAbsolutePath());
-        }
-        logsBuffer = new BigQueue(dir, queueNameDir);
-        queueDirectory = bufferDir;
         this.tasksExecutor = tasksExecutor;
-
         debug("Created new LogzioSender class");
     }
 
+    @Deprecated
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
+                                                                    int drainTimeout, int fsPercentThreshold,
+                                                                    File bufferDir, String logzioUrl, int socketTimeout,
+                                                                    int connectTimeout, boolean debug,
+                                                                    SenderStatusReporter reporter,
+                                                                    ScheduledExecutorService tasksExecutor,
+                                                                    int gcPersistedQueueFilesIntervalSeconds,
+                                                                    boolean compressRequests)
+            throws LogzioParameterErrorException {
+
+
+        LogzioLogsBufferInterface logsBuffer = null;
+        if (bufferDir != null) {
+            logsBuffer = DiskQueue
+                    .builder(null, null)
+                    .setDiskSpaceTasks(tasksExecutor)
+                    .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
+                    .setReporter(reporter)
+                    .setFsPercentThreshold(fsPercentThreshold)
+                    .setBufferDir(bufferDir)
+                    .build();
+        }
+        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+                .builder()
+                .setCompressRequests(compressRequests)
+                .setConnectTimeout(connectTimeout)
+                .setSocketTimeout(socketTimeout)
+                .setLogzioListenerUrl(logzioUrl)
+                .setLogzioType(logzioType)
+                .setLogzioToken(logzioToken)
+                .build();
+        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
+    }
+
+    @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds, boolean compressRequests) throws LogzioParameterErrorException {
+                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
+        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
+    }
 
+    private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
+                                                ScheduledExecutorService tasksExecutor, LogzioLogsBufferInterface logsBuffer)
+            throws LogzioParameterErrorException {
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
-        LogzioSender logzioSenderInstance = logzioSenderInstances.get(logzioType);
+        LogzioSender logzioSenderInstance = logzioSenderInstances.get(httpsRequestConfiguration.getLogzioType());
         if (logzioSenderInstance == null) {
-            if (bufferDir == null) {
-                throw new LogzioParameterErrorException("bufferDir", "null");
+            if (logsBuffer == null) {
+                throw new LogzioParameterErrorException("logsBuffer", "null");
             }
-            LogzioSender logzioSender = new LogzioSender(logzioToken, logzioType, drainTimeout, fsPercentThreshold,
-                    bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter,
-                    tasksExecutor, gcPersistedQueueFilesIntervalSeconds, compressRequests);
-            logzioSenderInstances.put(logzioType, logzioSender);
+
+            LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
+                    tasksExecutor, logsBuffer);
+            logzioSenderInstances.put(httpsRequestConfiguration.getLogzioType(), logzioSender);
             return logzioSender;
         } else {
-            reporter.info("Already found appender configured for type " + logzioType + ", re-using the same one.");
+            reporter.info("Already found appender configured for type " + httpsRequestConfiguration.getLogzioType()
+                    + ", re-using the same one.");
 
             // Sometimes (For example under Spring) the framework closes logback entirely (thos closing the executor)
             // So we need to take a new one instead, as we can grantee that nothing is running now because it is terminated.
@@ -109,16 +123,8 @@ public class LogzioSender {
         }
     }
 
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
-                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
-    }
-
     public void start() {
         tasksExecutor.scheduleWithFixedDelay(this::drainQueueAndSend, 0, drainTimeout, TimeUnit.SECONDS);
-        tasksExecutor.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -135,14 +141,6 @@ public class LogzioSender {
         }
     }
 
-    public void gcBigQueue() {
-        try {
-            logsBuffer.gc();
-        } catch (Throwable e) {
-            // We cant throw anything out, or the task will stop, so just swallow all
-            reporter.error("Uncaught error from BigQueue.gc()", e);
-        }
-    }
 
     public void drainQueueAndSend() {
         try {
@@ -165,35 +163,12 @@ public class LogzioSender {
 
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
-        enqueue((jsonMessage+ "\n").getBytes());
-    }
-
-    private void enqueue(byte[] message) {
-        if (isEnoughDiskSpace()) {
-            logsBuffer.enqueue(message);
-        }
-    }
-
-    private boolean isEnoughDiskSpace() {
-        if (dontCheckEnoughDiskSpace) {
-            return true;
-        }
-
-        int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
-        if (actualUsedFsPercent >= fsPercentThreshold) {
-
-            reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
-                    queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
-
-            return false;
-        } else {
-            return true;
-        }
+        logsBuffer.enqueue((jsonMessage+ "\n").getBytes());
     }
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<>();
-        long totalSize = 0;
+        int totalSize = 0;
         while (!logsBuffer.isEmpty()) {
             byte[] message  = logsBuffer.dequeue();
             if (message != null && message.length > 0) {
@@ -220,7 +195,7 @@ public class LogzioSender {
                     debug("Will retry in the next interval");
 
                     // And lets return everything to the queue
-                    logsList.forEach((logMessage) -> enqueue(logMessage.getMessage()));
+                    logsList.forEach((logMessage) -> logsBuffer.enqueue(logMessage.getMessage()));
 
                     // Lets wait for a new interval, something is wrong in the server side
                     break;
@@ -243,6 +218,87 @@ public class LogzioSender {
         if (debug) {
             reporter.info("DEBUG: " + message, e);
         }
+    }
+
+
+    public static class Builder {
+        private boolean debug = false;
+        private int drainTimeout = 5; //sec
+        private SenderStatusReporter reporter;
+        private ScheduledExecutorService tasksExecutor;
+        private InMemoryLogsBuffer.Builder InMemoryLogsBufferBuilder;
+        private DiskQueue.Builder diskQueueBuilder;
+        private HttpsRequestConfiguration httpsRequestConfiguration;
+
+        public Builder setDrainTimeout(int drainTimeout) {
+            this.drainTimeout = drainTimeout;
+            return this;
+        }
+
+        public Builder setDebug(boolean debug) {
+            this.debug = debug;
+            return this;
+        }
+
+        public Builder setTasksExecutor(ScheduledExecutorService tasksExecutor) {
+            this.tasksExecutor = tasksExecutor;
+            return this;
+        }
+
+
+        public Builder setReporter(SenderStatusReporter reporter) {
+            this.reporter = reporter;
+            return this;
+        }
+
+        public Builder setHttpsRequestConfiguration(HttpsRequestConfiguration httpsRequestConfiguration) {
+            this.httpsRequestConfiguration = httpsRequestConfiguration;
+            return this;
+        }
+
+        public InMemoryLogsBuffer.Builder WithInMemoryLogsBuffer() {
+            return InMemoryLogsBuffer.builder(this);
+        }
+
+        public DiskQueue.Builder WithDiskMemoryQueue() {
+            return DiskQueue.builder(this, tasksExecutor);
+        }
+
+        void setDiskQueueBuilder(DiskQueue.Builder diskQueueBuilder) {
+            this.diskQueueBuilder = diskQueueBuilder;
+        }
+
+        void setInMemoryLogsBufferBuilder(InMemoryLogsBuffer.Builder InMemoryLogsBufferBuilder) {
+            this.InMemoryLogsBufferBuilder = InMemoryLogsBufferBuilder;
+        }
+
+        public LogzioSender build() throws LogzioParameterErrorException {
+            return  getLogzioSender(
+                    httpsRequestConfiguration,
+                    drainTimeout,
+                    debug,
+                    reporter,
+                    tasksExecutor,
+                    getLogsBuffer()
+            );
+        }
+
+        private LogzioLogsBufferInterface getLogsBuffer() throws LogzioParameterErrorException {
+            LogzioLogsBufferInterface logsBuffer = null;
+            if (diskQueueBuilder != null) {
+                diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
+                diskQueueBuilder.setReporter(reporter);
+                logsBuffer = diskQueueBuilder.build();
+            }else if (InMemoryLogsBufferBuilder != null) {
+                InMemoryLogsBufferBuilder.setReporter(reporter);
+                logsBuffer = InMemoryLogsBufferBuilder.build();
+            }
+            return logsBuffer;
+        }
+    }
+
+    public static Builder builder(){
+        return new Builder();
     }
 
 }

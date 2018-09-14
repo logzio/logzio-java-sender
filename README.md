@@ -30,9 +30,72 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
+| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
+| **bufferThreshold**       | *1024 * 1024 * 100*                                | The amount of memory disk we are allowed to use for the memory queue |
+| **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
+
+
 
 
 ### Code Example
+From version 1.0.15 we use a builder to get Logz.io sender
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.gson.JsonObject;
+
+public class LogzioSenderExample {
+
+    public static void main(String[] args) {
+        
+        HttpsRequestConfiguration conf = HttpsRequestConfiguration
+                        .builder()
+                        .setCompressRequests(true)
+                        .setConnectTimeout(10*1000)
+                        .setSocketTimeout(10*1000)
+                        .setLogzioListenerUrl("https://listener.logz.io:8071")
+                        .setLogzioType("javaSenderType")
+                        .setLogzioToken("123456789")
+                        .build();
+        
+        // Use one of the following implementations
+        // 1) disk queue example 
+        LogzioSender logzioSender = LogzioSender
+                        .builder()
+                        .setDebug(false)
+                        .setTasksExecutor(Executors.newScheduledThreadPool(3))
+                        .setDrainTimeout(drainTimeout)
+                        .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
+                        .setHttpsRequestConfiguration(httpsRequestConfiguration)
+                        .WithDiskMemoryQueue()
+                            .setBufferDir(bufferDir)
+                            .setFsPercentThreshold(fsPercentThreshold)
+                            .setCheckDiskSpaceInterval(1000)
+                            .setGcPersistedQueueFilesIntervalSeconds(30)
+                        .EndDiskQueue()
+                        .build();
+        
+        // 2) in memory queue example
+        LogzioSender logzioSender = LogzioSender
+                        .builder()
+                        .setDebug(false)
+                        .setTasksExecutor(Executors.newScheduledThreadPool(3))
+                        .setDrainTimeout(drainTimeout)
+                        .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
+                        .setHttpsRequestConfiguration(conf)
+                        .WithInMemoryLogsBuffer()
+                            .setBufferThreshold(1024 * 1024 * 100) //100MB
+                        .EndInMemoryLogsBuffer()
+                        .build();
+
+        sender.start();
+        JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
+        sender.send(jsonMessage);
+    }
+}
+```
+
+Until version 1.0.14
 ```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +116,10 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.12 - 1.0.15
+   - separating https request from the sender
+   - add implementation for in memory queue
+   - add a builder for sender, http configuration, and buffers implementation  
  - 1.0.11 fix shaded
  - 1.0.10 add gzip compression
  - 1.0.9 add auto deploy

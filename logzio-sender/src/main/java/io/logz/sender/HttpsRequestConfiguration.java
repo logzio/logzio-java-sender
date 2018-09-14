@@ -4,9 +4,6 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.logging.Logger;
-
-import static java.util.Objects.requireNonNull;
 
 public class HttpsRequestConfiguration {
     private final int initialWaitBeforeRetryMS;
@@ -17,6 +14,7 @@ public class HttpsRequestConfiguration {
     private final String logzioToken;
     private final String logzioType;
     private final URL logzioListenerUrl;
+    private final boolean compressRequests;
 
     public int getInitialWaitBeforeRetryMS() {
         return initialWaitBeforeRetryMS;
@@ -54,22 +52,39 @@ public class HttpsRequestConfiguration {
         return compressRequests;
     }
 
-    private final boolean compressRequests;
-
+    private URL createURL(String url) throws MalformedURLException {
+        if (url == null || url.isEmpty()) {
+            throw new MalformedURLException();
+        }
+        return logzioType == null ?
+                new URL(url + "/?token=" + logzioToken) :
+                new URL(url + "/?token=" + logzioToken + "&type=" + logzioType);
+    }
 
     private HttpsRequestConfiguration(String logzioToken,
                                      int maxRetriesAttempts, int initialWaitBeforeRetryMS, int socketTimeout,
-                                     int connectTimeout, String requestMethod, URL logzioListenerUrl,
+                                     int connectTimeout, String requestMethod, String logzioListenerUrl,
                                      boolean compressRequests, String logzioType) throws LogzioParameterErrorException {
         this.maxRetriesAttempts = maxRetriesAttempts;
         this.initialWaitBeforeRetryMS = initialWaitBeforeRetryMS;
         this.socketTimeout = socketTimeout;
         this.connectTimeout = connectTimeout;
         this.requestMethod = requestMethod;
-        this.logzioListenerUrl = logzioListenerUrl;
+
+        if (logzioToken == null || logzioToken.isEmpty()) {
+            throw new LogzioParameterErrorException("logzioToken = " + logzioToken, "logzioToken can't be empty string or null ");
+        }
+
         this.logzioToken = logzioToken;
         this.compressRequests = compressRequests;
         this.logzioType = logzioType;
+
+        try {
+            this.logzioListenerUrl = createURL(logzioListenerUrl);
+        } catch (MalformedURLException e){
+            throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
+                    + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
+        }
     }
 
     public static Builder builder() { return new Builder(); }
@@ -84,7 +99,6 @@ public class HttpsRequestConfiguration {
         private String logzioListenerUrl = "https://listener.logz.io:8071";
         private String logzioToken;
         private boolean compressRequests = false;
-        private static final Logger LOGGER = Logger.getLogger( Builder.class.getName() );
 
         public Builder setLogzioToken(String logzioToken){
             this.logzioToken = logzioToken;
@@ -121,9 +135,6 @@ public class HttpsRequestConfiguration {
         }
 
         public Builder setLogzioListenerUrl(String logzioListenerUrl){
-            if (logzioListenerUrl.equals(this.logzioListenerUrl)) {
-                return this;
-            }
             this.logzioListenerUrl = logzioListenerUrl;
             return this;
         }
@@ -133,29 +144,15 @@ public class HttpsRequestConfiguration {
             return this;
         }
 
-        private URL createURL(String url) throws MalformedURLException {
-                return logzioType == null ?
-                        new URL(url + "/?token=" + logzioToken) :
-                        new URL(url + "/?token=" + logzioToken + "&type=" + logzioType);
-        }
-
         public HttpsRequestConfiguration build() throws LogzioParameterErrorException {
-            URL url;
-            try {
-                url = createURL(logzioListenerUrl);
-            } catch (MalformedURLException e){
-                LOGGER.severe("Can't connect to Logzio: " + e.getMessage());
-                throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
-                        + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
-            }
             return new HttpsRequestConfiguration(
-                    requireNonNull(logzioToken, "logzioToken can't be null"),
+                    logzioToken,
                     maxRetriesAttempts,
                     initialWaitBeforeRetryMS,
                     socketTimeout,
                     connectTimeout,
                     requestMethod,
-                    url,
+                    logzioListenerUrl,
                     compressRequests,
                     logzioType);
         }

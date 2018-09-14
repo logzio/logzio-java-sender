@@ -2,10 +2,6 @@ package io.logz.sender;
 
 import org.slf4j.Logger;
 
-/**
- * @author MarinaRazumovsky
- */
-
 public class LogzioTestStatusReporter implements SenderStatusReporter {
     private Logger logger;
 

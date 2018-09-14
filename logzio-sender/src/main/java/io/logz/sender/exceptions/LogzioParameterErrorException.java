@@ -1,8 +1,5 @@
 package io.logz.sender.exceptions;
 
-/**
- * @author MarinaRazumovsky
- */
 public class LogzioParameterErrorException extends Exception {
 
     public LogzioParameterErrorException(String property, String explanation ) {

@@ -5,12 +5,10 @@ import io.logz.sender.exceptions.LogzioServerErrorException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
-
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -19,7 +17,7 @@ public class HttpsSyncSender {
     private final SenderStatusReporter reporter;
 
 
-    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter){
+    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter) {
         this.configuration = configuration;
         this.reporter = reporter;
     }
@@ -43,10 +41,7 @@ public class HttpsSyncSender {
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
         try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
              OutputStream os = configuration.isCompressRequests() ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
-            for (FormattedLogMessage currMessage : messages) {
-                os.write(currMessage.getMessage());
-            }
-
+            for (FormattedLogMessage currMessage : messages) os.write(currMessage.getMessage());
             // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
             os.close();
             return byteOutputStream.toByteArray();
@@ -120,7 +115,7 @@ public class HttpsSyncSender {
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
-                if (!shouldRetry) {
+                if (!shouldRetry && responseCode == HttpURLConnection.HTTP_OK) {
                     reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
                     break;
 
