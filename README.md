@@ -71,7 +71,7 @@ public class LogzioSenderExample {
         LogzioSender logzioSender = LogzioSender
                         .builder()
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
-                        .setDrainTimeout(drainTimeout)
+                        .setDrainTimeoutSec(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
                         .withInMemoryQueue()

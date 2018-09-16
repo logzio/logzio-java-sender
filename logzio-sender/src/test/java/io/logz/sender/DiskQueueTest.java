@@ -57,7 +57,6 @@ public class DiskQueueTest extends LogzioSenderTest {
                     .setCheckDiskSpaceInterval(1000)
                 .endDiskQueue()
                 .build();
-
         logzioSender.start();
         return logzioSender;
     }
@@ -92,6 +91,7 @@ public class DiskQueueTest extends LogzioSenderTest {
     }
 
     @Test
+
     public void testSenderCreatesDirectoryWhichDoesNotExists() throws Exception {
         String token = "nowWeWantToChangeTheBufferLocation";
         String type = "justTestingExistence";

@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LogzioSender {
+public class LogzioSender  {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
@@ -66,7 +66,6 @@ public class LogzioSender {
                                                                     int gcPersistedQueueFilesIntervalSeconds,
                                                                     boolean compressRequests)
             throws LogzioParameterErrorException {
-
 
         LogsQueue logsBuffer = null;
         if (bufferDir != null) {
@@ -179,7 +178,7 @@ public class LogzioSender {
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<>();
-        long totalSize = 0;
+        int totalSize = 0;
         while (!logsBuffer.isEmpty()) {
             byte[] message  = logsBuffer.dequeue();
             if (message != null && message.length > 0) {
@@ -303,7 +302,6 @@ public class LogzioSender {
 
             inMemoryQueueBuilder.setReporter(reporter);
             return inMemoryQueueBuilder.build();
-
         }
     }
 
