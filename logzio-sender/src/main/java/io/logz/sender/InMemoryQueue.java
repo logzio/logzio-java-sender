@@ -4,7 +4,6 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class InMemoryQueue implements LogsQueue {

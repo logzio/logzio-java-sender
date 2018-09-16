@@ -2,7 +2,6 @@ package io.logz.sender;
 
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.TestEnvironment;
-import org.assertj.core.api.Fail;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
