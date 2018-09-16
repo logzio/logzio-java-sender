@@ -70,10 +70,10 @@ public class LogzioLongRunningTests {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(reporter)
                         .setHttpsRequestConfiguration(conf)
-                        .WithDiskMemoryQueue()
+                        .withDiskQueue()
                         .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
                         .setBufferDir(tempDir)
-                        .EndDiskQueue()
+                        .endDiskQueue()
                         .setTasksExecutor(tasks)
                         .build();
         logzioSender.start();
@@ -96,9 +96,9 @@ public class LogzioLongRunningTests {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(reporter)
                         .setHttpsRequestConfiguration(conf)
-                        .WithInMemoryLogsBuffer()
-                        .setBufferThreshold(InMemoryLogsBuffer.DONT_LIMIT_BUFFER_SPACE)
-                        .EndInMemoryLogsBuffer()
+                        .withInMemoryQueue()
+                        .setBufferThreshold(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
+                        .endInMemoryQueue()
                         .build();
         logzioSender.start();
         sendLogs(loggerName, logzioSender, msgCount);

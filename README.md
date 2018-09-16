@@ -74,8 +74,8 @@ public class LogzioSenderExample {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
-                        .withInMemoryLogsBuffer()
-                        .endInMemoryLogsBuffer()
+                        .withInMemoryQueue()
+                        .endInMemoryQueue()
                         .build();
 
         sender.start();

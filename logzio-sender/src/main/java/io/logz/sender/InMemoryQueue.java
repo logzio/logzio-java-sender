@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class InMemoryLogsBuffer implements LogzioLogsBufferInterface {
+public class InMemoryQueue implements LogzioLogsBufferInterface {
     private static final int ONE_MEGA_BYTE_IN_BYTES = 1024 * 1024;
     public static int DONT_LIMIT_BUFFER_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;
@@ -15,9 +15,7 @@ public class InMemoryLogsBuffer implements LogzioLogsBufferInterface {
     private final SenderStatusReporter reporter;
     private AtomicInteger size;
 
-    private InMemoryLogsBuffer(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter)
-            throws LogzioParameterErrorException {
-
+    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int bufferThreshold, SenderStatusReporter reporter) {
         logsBuffer = new ConcurrentLinkedQueue<>();
         this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
         this.bufferThreshold = bufferThreshold;
@@ -85,13 +83,13 @@ public class InMemoryLogsBuffer implements LogzioLogsBufferInterface {
             return this;
         }
 
-        public LogzioSender.Builder endInMemoryLogsBuffer() {
-            context.setInMemoryLogsBufferBuilder(this);
+        public LogzioSender.Builder endInMemoryQueue() {
+            context.setInMemoryQueueBuilder(this);
             return context;
         }
 
-        public InMemoryLogsBuffer build() throws LogzioParameterErrorException{
-            return new InMemoryLogsBuffer(dontCheckEnoughMemorySpace, bufferThreshold, reporter);
+        public InMemoryQueue build() throws LogzioParameterErrorException{
+            return new InMemoryQueue(dontCheckEnoughMemorySpace, bufferThreshold, reporter);
         }
     }
 

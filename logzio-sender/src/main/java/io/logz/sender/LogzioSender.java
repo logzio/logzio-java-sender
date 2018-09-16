@@ -226,7 +226,7 @@ public class LogzioSender  {
         private int drainTimeout = 5; //sec
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
-        private InMemoryLogsBuffer.Builder InMemoryLogsBufferBuilder;
+        private InMemoryQueue.Builder InMemoryQueueBuilder;
         private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
 
@@ -256,8 +256,8 @@ public class LogzioSender  {
             return this;
         }
 
-        public InMemoryLogsBuffer.Builder withInMemoryLogsBuffer() {
-            return InMemoryLogsBuffer.builder(this);
+        public InMemoryQueue.Builder withInMemoryQueue() {
+            return InMemoryQueue.builder(this);
         }
 
         public DiskQueue.Builder withDiskQueue() {
@@ -268,8 +268,8 @@ public class LogzioSender  {
             this.diskQueueBuilder = diskQueueBuilder;
         }
 
-        void setInMemoryLogsBufferBuilder(InMemoryLogsBuffer.Builder InMemoryLogsBufferBuilder) {
-            this.InMemoryLogsBufferBuilder = InMemoryLogsBufferBuilder;
+        void setInMemoryQueueBuilder(InMemoryQueue.Builder InMemoryQueueBuilder) {
+            this.InMemoryQueueBuilder = InMemoryQueueBuilder;
         }
 
         public LogzioSender build() throws LogzioParameterErrorException {
@@ -289,9 +289,9 @@ public class LogzioSender  {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);
                 logsBuffer = diskQueueBuilder.build();
-            }else if (InMemoryLogsBufferBuilder != null) {
-                InMemoryLogsBufferBuilder.setReporter(reporter);
-                logsBuffer = InMemoryLogsBufferBuilder.build();
+            }else if (InMemoryQueueBuilder != null) {
+                InMemoryQueueBuilder.setReporter(reporter);
+                logsBuffer = InMemoryQueueBuilder.build();
             }
             return logsBuffer;
         }
