@@ -20,7 +20,6 @@ import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 public abstract class LogzioSenderTest {
     private MockLogzioBulkListener mockListener;
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
-    private LogzioSender testSender;
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
     private ScheduledExecutorService tasks;
@@ -101,7 +100,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
 
-        testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
+        LogzioSender testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
                 10 * 1000,  tasks,  true);
 
 
