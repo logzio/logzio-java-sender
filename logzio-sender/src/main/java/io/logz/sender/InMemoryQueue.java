@@ -26,19 +26,26 @@ public class InMemoryQueue implements LogsQueue {
     @Override
     public void enqueue(byte[] log) {
         queueLock.lock();
-        if(isEnoughSpace()) {
-            logsBuffer.add(log);
-            size += log.length;
+        try {
+            if(isEnoughSpace()) {
+                logsBuffer.add(log);
+                size += log.length;
+            }
+        }finally {
+            queueLock.unlock();
         }
-        queueLock.unlock();
     }
 
     @Override
     public byte[] dequeue() {
         queueLock.lock();
-        byte[] log =  logsBuffer.remove();
-        size -= log.length;
-        queueLock.unlock();
+        byte[] log;
+        try {
+            log = logsBuffer.remove();
+            size -= log.length;
+        }finally {
+            queueLock.unlock();
+        }
         return log;
     }
 
