@@ -51,11 +51,11 @@ public class DiskQueueTest extends LogzioSenderTest{
                 .setDrainTimeout(drainTimeout)
                 .setReporter(logy)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                .WithDiskMemoryQueue()
+                .withDiskQueue()
                     .setBufferDir(bufferDir)
                     .setFsPercentThreshold(fsPercentThreshold)
                     .setCheckDiskSpaceInterval(1000)
-                .EndDiskQueue()
+                .endDiskQueue()
                 .build();
 
         logzioSender.start();

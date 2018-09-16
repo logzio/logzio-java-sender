@@ -85,7 +85,7 @@ public class InMemoryLogsBuffer implements LogzioLogsBufferInterface {
             return this;
         }
 
-        public LogzioSender.Builder EndInMemoryLogsBuffer() {
+        public LogzioSender.Builder endInMemoryLogsBuffer() {
             context.setInMemoryLogsBufferBuilder(this);
             return context;
         }

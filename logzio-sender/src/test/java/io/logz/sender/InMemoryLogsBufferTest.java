@@ -35,9 +35,9 @@ public class InMemoryLogsBufferTest extends LogzioSenderTest {
                 .setTasksExecutor(tasks)
                 .setDrainTimeout(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                .WithInMemoryLogsBuffer()
+                .withInMemoryLogsBuffer()
                     .setBufferThreshold(bufferThreshold)
-                .EndInMemoryLogsBuffer()
+                .endInMemoryLogsBuffer()
                 .setReporter(logy)
                 .build();
 

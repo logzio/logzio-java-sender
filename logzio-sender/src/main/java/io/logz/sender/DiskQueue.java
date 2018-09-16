@@ -141,7 +141,7 @@ public class DiskQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public LogzioSender.Builder EndDiskQueue() {
+        public LogzioSender.Builder endDiskQueue() {
             context.setDiskQueueBuilder(this);
             return context;
         }

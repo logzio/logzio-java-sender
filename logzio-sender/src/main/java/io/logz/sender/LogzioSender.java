@@ -256,11 +256,11 @@ public class LogzioSender  {
             return this;
         }
 
-        public InMemoryLogsBuffer.Builder WithInMemoryLogsBuffer() {
+        public InMemoryLogsBuffer.Builder withInMemoryLogsBuffer() {
             return InMemoryLogsBuffer.builder(this);
         }
 
-        public DiskQueue.Builder WithDiskMemoryQueue() {
+        public DiskQueue.Builder withDiskQueue() {
             return DiskQueue.builder(this, tasksExecutor);
         }
 

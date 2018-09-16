@@ -62,9 +62,9 @@ public class LogzioSenderExample {
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                        .WithDiskMemoryQueue()
+                        .withDiskQueue()
                             .setBufferDir(bufferDir)
-                        .EndDiskQueue()
+                        .endDiskQueue()
                         .build();
         
         // 2) in memory queue example
@@ -74,8 +74,8 @@ public class LogzioSenderExample {
                         .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
-                        .WithInMemoryLogsBuffer()
-                        .EndInMemoryLogsBuffer()
+                        .withInMemoryLogsBuffer()
+                        .endInMemoryLogsBuffer()
                         .build();
 
         sender.start();
