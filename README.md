@@ -50,9 +50,6 @@ public class LogzioSenderExample {
         
         HttpsRequestConfiguration conf = HttpsRequestConfiguration
                         .builder()
-                        .setCompressRequests(true)
-                        .setConnectTimeout(10*1000)
-                        .setSocketTimeout(10*1000)
                         .setLogzioListenerUrl("https://listener.logz.io:8071")
                         .setLogzioType("javaSenderType")
                         .setLogzioToken("123456789")
@@ -62,29 +59,22 @@ public class LogzioSenderExample {
         // 1) disk queue example 
         LogzioSender logzioSender = LogzioSender
                         .builder()
-                        .setDebug(false)
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
-                        .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(httpsRequestConfiguration)
                         .WithDiskMemoryQueue()
                             .setBufferDir(bufferDir)
-                            .setFsPercentThreshold(fsPercentThreshold)
-                            .setCheckDiskSpaceInterval(1000)
-                            .setGcPersistedQueueFilesIntervalSeconds(30)
                         .EndDiskQueue()
                         .build();
         
         // 2) in memory queue example
         LogzioSender logzioSender = LogzioSender
                         .builder()
-                        .setDebug(false)
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
                         .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
                         .WithInMemoryLogsBuffer()
-                            .setBufferThreshold(1024 * 1024 * 100) //100MB
                         .EndInMemoryLogsBuffer()
                         .build();
 
