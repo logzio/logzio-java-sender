@@ -5,7 +5,7 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
 import java.io.File;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -173,7 +173,7 @@ public class LogzioSender  {
 
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
-        logsQueue.enqueue((jsonMessage+ "\n").getBytes(Charset.forName("UTF-8")));
+        logsQueue.enqueue((jsonMessage+ "\n").getBytes(StandardCharsets.UTF_8));
     }
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {

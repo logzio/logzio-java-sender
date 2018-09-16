@@ -18,7 +18,7 @@ import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 public abstract class LogzioSenderTest {
-    private MockLogzioBulkListener mockListener;
+    protected MockLogzioBulkListener mockListener;
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
@@ -40,7 +40,7 @@ public abstract class LogzioSenderTest {
         }
     }
 
-    private void sleepSeconds(int seconds) {
+    protected void sleepSeconds(int seconds) {
         logger.info("Sleeping {} [sec]...", seconds);
         try {
             Thread.sleep(seconds * 1000);

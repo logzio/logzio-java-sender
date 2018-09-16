@@ -11,7 +11,7 @@ public class InMemoryQueue implements LogsQueue {
     private final boolean dontCheckEnoughMemorySpace;
     private final long inMemoryQueueCapacityInBytes;
     private final SenderStatusReporter reporter;
-    private long size;
+    private volatile long size;
     private final ReentrantLock queueLock;
 
     private InMemoryQueue(boolean dontCheckEnoughMemorySpace, long inMemoryQueueCapacityInBytes, SenderStatusReporter reporter) {
@@ -58,7 +58,6 @@ public class InMemoryQueue implements LogsQueue {
         if (dontCheckEnoughMemorySpace) {
             return true;
         }
-
         if (size >= inMemoryQueueCapacityInBytes) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
                     inMemoryQueueCapacityInBytes/(MB_IN_BYTES)));
