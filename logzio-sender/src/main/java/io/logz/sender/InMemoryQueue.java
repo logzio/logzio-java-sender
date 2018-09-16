@@ -5,6 +5,7 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class InMemoryQueue implements LogsQueue {
     private static final int MG_IN_BYTES = 1024 * 1024;
@@ -13,7 +14,8 @@ public class InMemoryQueue implements LogsQueue {
     private final boolean dontCheckEnoughMemorySpace;
     private final int capacityInBytes;
     private final SenderStatusReporter reporter;
-    private AtomicInteger size;
+    private int size;
+    private ReentrantLock queueLock;
 
     private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int capacityInBytes, SenderStatusReporter reporter) {
         logsBuffer = new ConcurrentLinkedQueue<>();
@@ -21,20 +23,25 @@ public class InMemoryQueue implements LogsQueue {
         this.capacityInBytes = capacityInBytes;
         this.reporter = reporter;
         this.size = new AtomicInteger();
+        this.queueLock = new ReentrantLock();
     }
 
     @Override
     public void enqueue(byte[] log) {
+        queueLock.lock();
         if(isEnoughSpace()) {
             logsBuffer.add(log);
-            size.getAndAdd(log.length);
+            size += log.length;
         }
+        queueLock.unlock();
     }
 
     @Override
     public byte[] dequeue() {
+        queueLock.lock();
         byte[] log =  logsBuffer.remove();
-        size.getAndAdd(-log.length);
+        size -= log.length;
+        queueLock.unlock();
         return log;
     }
 
