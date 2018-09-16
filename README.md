@@ -37,6 +37,8 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
 #### Parameters for disk queue
+| Parameter          | Default                              | Explained  |
+| ------------------ | ------------------------------------ | ----- |
 | **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 
