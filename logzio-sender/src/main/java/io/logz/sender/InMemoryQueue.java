@@ -94,7 +94,7 @@ public class InMemoryQueue implements LogsQueue {
             return context;
         }
 
-        public InMemoryQueue build() throws LogzioParameterErrorException{
+        public InMemoryQueue build() {
             return new InMemoryQueue(dontCheckEnoughMemorySpace, capacityInBytes, reporter);
         }
     }
