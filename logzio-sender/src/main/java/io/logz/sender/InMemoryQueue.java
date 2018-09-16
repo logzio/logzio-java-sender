@@ -5,20 +5,21 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class InMemoryQueue implements LogsQueue {
-    private static final int MG_IN_BYTES = 1024 * 1024;
+    private static final int MB_IN_BYTES = 1024 * 1024;
     public static int DONT_LIMIT_BUFFER_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;
     private final boolean dontCheckEnoughMemorySpace;
-    private int capacityInBytes;
+    private final long inMemoryQueueCapacityInBytes;
     private final SenderStatusReporter reporter;
+    private long size;
     private ReentrantLock queueLock;
 
-    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, int capacityInBytes, SenderStatusReporter reporter) {
+    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, long inMemoryQueueCapacityInBytes, SenderStatusReporter reporter) {
         logsBuffer = new ConcurrentLinkedQueue<>();
         this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
-        this.capacityInBytes = capacityInBytes;
+        this.inMemoryQueueCapacityInBytes = inMemoryQueueCapacityInBytes;
         this.reporter = reporter;
-        this.capacityInBytes = 0;
+        this.size = 0;
         this.queueLock = new ReentrantLock();
     }
 
@@ -27,7 +28,7 @@ public class InMemoryQueue implements LogsQueue {
         queueLock.lock();
         if(isEnoughSpace()) {
             logsBuffer.add(log);
-            capacityInBytes += log.length;
+            size += log.length;
         }
         queueLock.unlock();
     }
@@ -36,7 +37,7 @@ public class InMemoryQueue implements LogsQueue {
     public byte[] dequeue() {
         queueLock.lock();
         byte[] log =  logsBuffer.remove();
-        capacityInBytes -= log.length;
+        size -= log.length;
         queueLock.unlock();
         return log;
     }
@@ -51,9 +52,9 @@ public class InMemoryQueue implements LogsQueue {
             return true;
         }
 
-        if (capacityInBytes >= capacityInBytes) {
+        if (size >= inMemoryQueueCapacityInBytes) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
-                    capacityInBytes/(MG_IN_BYTES)));
+                    inMemoryQueueCapacityInBytes/(MB_IN_BYTES)));
             return false;
         }
         return true;
@@ -64,7 +65,7 @@ public class InMemoryQueue implements LogsQueue {
     }
 
     public static class Builder {
-        private int capacityInBytes = MG_IN_BYTES * 100; //100MB memory limit
+        private long inMemoryQueueCapacityInBytes = MB_IN_BYTES * 100; //100MB memory limit
         private SenderStatusReporter reporter;
         private boolean dontCheckEnoughMemorySpace = false;
         private LogzioSender.Builder context;
@@ -73,9 +74,9 @@ public class InMemoryQueue implements LogsQueue {
             this.context = context;
         }
 
-        public Builder setCapacityInBytes(int capacityInBytes) {
-            this.capacityInBytes = capacityInBytes;
-            if (capacityInBytes == DONT_LIMIT_BUFFER_SPACE) {
+        public Builder setInMemoryQueueCapacityInBytes(long inMemoryQueueCapacityInBytes) {
+            this.inMemoryQueueCapacityInBytes = inMemoryQueueCapacityInBytes;
+            if (inMemoryQueueCapacityInBytes == DONT_LIMIT_BUFFER_SPACE) {
                 dontCheckEnoughMemorySpace = true;
             }
             return this;
@@ -92,7 +93,7 @@ public class InMemoryQueue implements LogsQueue {
         }
 
         public InMemoryQueue build() {
-            return new InMemoryQueue(dontCheckEnoughMemorySpace, capacityInBytes, reporter);
+            return new InMemoryQueue(dontCheckEnoughMemorySpace, inMemoryQueueCapacityInBytes, reporter);
         }
     }
 
