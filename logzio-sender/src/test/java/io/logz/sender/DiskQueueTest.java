@@ -63,7 +63,7 @@ public class DiskQueueTest extends LogzioSenderTest {
     }
 
     @Override
-    protected void setZeroThresholdBuffer() throws LogzioParameterErrorException {
+    protected void setZeroThresholdBuffer() {
         zeroThresholdBuffer = true;
     }
 
@@ -75,10 +75,8 @@ public class DiskQueueTest extends LogzioSenderTest {
     public void testSenderCantWriteToEmptyDirectory() {
         String token = "nowWeTestLoggerCantWriteToTmpDirectory";
         String type = "justTestingNoWriteDir";
-        String loggerName = "changeBufferLocation";
         int drainTimeout = 10;
         File tempDirectory = new File("" + File.separator);
-        String message1 = "Just sending something - " + random(5);
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
         try {
             setBufferDir(tempDirectory);

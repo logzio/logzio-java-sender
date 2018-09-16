@@ -1,7 +1,5 @@
 package io.logz.sender;
 
-import io.logz.sender.exceptions.LogzioParameterErrorException;
-
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;

@@ -46,7 +46,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     }
 
     @Override
-    protected void setZeroThresholdBuffer() throws LogzioParameterErrorException {
+    protected void setZeroThresholdBuffer() {
         this.zeroThresholdBuffer = true;
     }
 }

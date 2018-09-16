@@ -54,7 +54,7 @@ public abstract class LogzioSenderTest {
                                                        ScheduledExecutorService tasks,
                                                        boolean compressRequests) throws LogzioParameterErrorException;
 
-    protected abstract void setZeroThresholdBuffer() throws LogzioParameterErrorException;
+    protected abstract void setZeroThresholdBuffer();
 
     protected int getMockListenerPort() {
         return mockListener.getPort();

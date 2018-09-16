@@ -295,7 +295,6 @@ public class LogzioSender {
         }
 
         private LogsQueue getLogsBuffer() throws LogzioParameterErrorException {
-            LogsQueue logsBuffer = null;
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);

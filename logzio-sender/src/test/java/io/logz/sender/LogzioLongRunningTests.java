@@ -53,7 +53,7 @@ public class LogzioLongRunningTests {
                 .build();
     }
 
-    private Builder getLogzioSenderBuilder(int drainTimeout, SenderStatusReporter reporter, HttpsRequestConfiguration conf) throws LogzioParameterErrorException {
+    private Builder getLogzioSenderBuilder(int drainTimeout, SenderStatusReporter reporter, HttpsRequestConfiguration conf) {
         return LogzioSender
                 .builder()
                 .setDrainTimeoutSec(drainTimeout)
