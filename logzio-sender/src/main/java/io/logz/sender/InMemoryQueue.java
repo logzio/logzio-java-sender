@@ -22,7 +22,7 @@ public class InMemoryQueue implements LogsQueue {
         this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
         this.capacityInBytes = capacityInBytes;
         this.reporter = reporter;
-        this.size = new AtomicInteger();
+        this.size = 0;
         this.queueLock = new ReentrantLock();
     }
 
@@ -55,7 +55,7 @@ public class InMemoryQueue implements LogsQueue {
             return true;
         }
 
-        if (size.get() >= capacityInBytes ) {
+        if (size >= capacityInBytes ) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
                     capacityInBytes/(MG_IN_BYTES)));
             return false;
