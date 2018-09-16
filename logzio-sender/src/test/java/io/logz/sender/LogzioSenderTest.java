@@ -36,7 +36,9 @@ public abstract class LogzioSenderTest {
     public void postTest() {
         if (mockListener != null)
              mockListener.stop();
-        tasks.shutdownNow();
+        if (tasks != null){
+            tasks.shutdownNow();
+        }
     }
 
     private void sleepSeconds(int seconds) {
