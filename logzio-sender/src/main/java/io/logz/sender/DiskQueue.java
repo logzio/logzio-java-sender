@@ -13,7 +13,6 @@ public class DiskQueue implements LogsQueue {
     private final boolean dontCheckEnoughDiskSpace;
     private final int fsPercentThreshold;
     private final SenderStatusReporter reporter;
-    private final ScheduledExecutorService diskSpaceTasks;
     private volatile boolean isEnoughSpace;
 
     private DiskQueue(File bufferDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
@@ -33,7 +32,6 @@ public class DiskQueue implements LogsQueue {
         logsBuffer = new BigQueue(dir, queueNameDir);
         this.dontCheckEnoughDiskSpace = dontCheckEnoughDiskSpace;
         this.fsPercentThreshold = fsPercentThreshold;
-        this.diskSpaceTasks = diskSpaceTasks;
         this.isEnoughSpace = true;
         diskSpaceTasks.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
         diskSpaceTasks.scheduleWithFixedDelay(this::validateEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
