@@ -52,15 +52,6 @@ public class HttpsRequestConfiguration {
         return compressRequests;
     }
 
-    private URL createURL(String url) throws MalformedURLException {
-        if (url == null || url.isEmpty()) {
-            throw new MalformedURLException();
-        }
-        return logzioType == null ?
-                new URL(url + "/?token=" + logzioToken) :
-                new URL(url + "/?token=" + logzioToken + "&type=" + logzioType);
-    }
-
     private HttpsRequestConfiguration(String logzioToken,
                                      int maxRetriesAttempts, int initialWaitBeforeRetryMS, int socketTimeout,
                                      int connectTimeout, String requestMethod, String logzioListenerUrl,
@@ -85,6 +76,15 @@ public class HttpsRequestConfiguration {
             throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
                     + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
         }
+    }
+
+    private URL createURL(String url) throws MalformedURLException {
+        if (url == null || url.isEmpty()) {
+            throw new MalformedURLException();
+        }
+        return logzioType == null ?
+                new URL(url + "/?token=" + logzioToken) :
+                new URL(url + "/?token=" + logzioToken + "&type=" + logzioType);
     }
 
     public static Builder builder() { return new Builder(); }
