@@ -23,17 +23,22 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
 | **drainTimeoutSec**       | *5*                                    | How often the sender should drain the buffer (in seconds) |
-| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **bufferDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
-| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
-| **bufferThreshold**       | *1024 * 1024 * 100*                                | The amount of memory(KB) we are allowed to use for the memory queue |
+
+#### Parameters for in-memory queue
+| Parameter          | Default                              | Explained  |
+| ------------------ | ------------------------------------ | ----- |
+| **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(KB) we are allowed to use for the memory queue |
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
+#### Parameters for disk queue
+| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
+| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 
 
 
