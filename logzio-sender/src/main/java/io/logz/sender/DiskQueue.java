@@ -15,6 +15,7 @@ public class DiskQueue implements LogsQueue {
     private final SenderStatusReporter reporter;
     private final ScheduledExecutorService diskSpaceTasks;
     private volatile boolean isEnoughSpace;
+    private long droppedLogsCounter;
 
     private DiskQueue(File bufferDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
                       int gcPersistedQueueFilesIntervalSeconds, SenderStatusReporter reporter,
@@ -35,8 +36,9 @@ public class DiskQueue implements LogsQueue {
         this.fsPercentThreshold = fsPercentThreshold;
         this.diskSpaceTasks = diskSpaceTasks;
         this.isEnoughSpace = true;
+        this.droppedLogsCounter = 0;
         diskSpaceTasks.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
-        diskSpaceTasks.scheduleWithFixedDelay(this::isEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
+        diskSpaceTasks.scheduleWithFixedDelay(this::validateEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
     }
 
     private void validateParameters() throws LogzioParameterErrorException {
@@ -52,6 +54,9 @@ public class DiskQueue implements LogsQueue {
     public void enqueue(byte[] log) {
         if (isEnoughSpace) {
             logsBuffer.enqueue(log);
+        }else {
+            droppedLogsCounter += 1;
+            reporter.warning("So far dropped " + droppedLogsCounter + " logs");
         }
     }
 
@@ -65,7 +70,7 @@ public class DiskQueue implements LogsQueue {
         return logsBuffer.isEmpty();
     }
 
-    private void isEnoughSpace() {
+    private void validateEnoughSpace() {
         if (dontCheckEnoughDiskSpace) {
             return;
         }
@@ -76,6 +81,7 @@ public class DiskQueue implements LogsQueue {
             isEnoughSpace = false;
         } else {
             isEnoughSpace = true;
+            droppedLogsCounter = 0;
         }
     }
 
