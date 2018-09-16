@@ -234,15 +234,15 @@ public class LogzioSender {
 
     public static class Builder {
         private boolean debug = false;
-        private int drainTimeout = 5; //sec
+        private int drainTimeoutSec = 5;
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
-        private InMemoryQueue.Builder InMemoryQueueBuilder;
+        private InMemoryQueue.Builder inMemoryQueueBuilder;
         private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
 
-        public Builder setDrainTimeout(int drainTimeout) {
-            this.drainTimeout = drainTimeout;
+        public Builder setDrainTimeoutSec(int drainTimeoutSec) {
+            this.drainTimeoutSec = drainTimeoutSec;
             return this;
         }
 
@@ -279,14 +279,14 @@ public class LogzioSender {
             this.diskQueueBuilder = diskQueueBuilder;
         }
 
-        void setInMemoryQueueBuilder(InMemoryQueue.Builder InMemoryQueueBuilder) {
-            this.InMemoryQueueBuilder = InMemoryQueueBuilder;
+        void setInMemoryQueueBuilder(InMemoryQueue.Builder inMemoryQueueBuilder) {
+            this.inMemoryQueueBuilder = inMemoryQueueBuilder;
         }
 
         public LogzioSender build() throws LogzioParameterErrorException {
             return  getLogzioSender(
                     httpsRequestConfiguration,
-                    drainTimeout,
+                    drainTimeoutSec,
                     debug,
                     reporter,
                     tasksExecutor,
@@ -299,12 +299,12 @@ public class LogzioSender {
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);
-                logsBuffer = diskQueueBuilder.build();
-            }else if (InMemoryQueueBuilder != null) {
-                InMemoryQueueBuilder.setReporter(reporter);
-                logsBuffer = InMemoryQueueBuilder.build();
+                return diskQueueBuilder.build();
             }
-            return logsBuffer;
+
+            inMemoryQueueBuilder.setReporter(reporter);
+            return inMemoryQueueBuilder.build();
+
         }
     }
 

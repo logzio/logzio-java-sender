@@ -1,5 +1,6 @@
 package io.logz.sender;
 
+import io.logz.sender.LogzioSender.Builder;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
@@ -52,6 +53,15 @@ public class LogzioLongRunningTests {
                 .build();
     }
 
+    private Builder getLogzioSenderBuilder(int drainTimeout, SenderStatusReporter reporter, HttpsRequestConfiguration conf) throws LogzioParameterErrorException {
+        return LogzioSender
+                .builder()
+                .setDrainTimeoutSec(drainTimeout)
+                .setReporter(reporter)
+                .setHttpsRequestConfiguration(conf)
+                .setTasksExecutor(tasks);
+    }
+
     @Test
     public void testDeadLock() throws Exception {
         String token = "aBcDeFgHiJkLmNoPqRsU";
@@ -64,18 +74,13 @@ public class LogzioLongRunningTests {
         tempDir.deleteOnExit();
         SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
         HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, mockListener.getPort());
-        LogzioSender logzioSender =
-                LogzioSender
-                        .builder()
-                        .setDrainTimeout(drainTimeout)
-                        .setReporter(reporter)
-                        .setHttpsRequestConfiguration(conf)
-                        .withDiskQueue()
-                        .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
-                        .setBufferDir(tempDir)
-                        .endDiskQueue()
-                        .setTasksExecutor(tasks)
-                        .build();
+        Builder logzioSenderBuilder = getLogzioSenderBuilder(drainTimeout, reporter, conf);
+        LogzioSender logzioSender = logzioSenderBuilder
+                .withDiskQueue()
+                .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
+                .setBufferDir(tempDir)
+                .endDiskQueue()
+                .build();
         logzioSender.start();
         sendLogs(loggerName, logzioSender, msgCount);
     }
@@ -89,17 +94,12 @@ public class LogzioLongRunningTests {
         final int msgCount = 100000;
         HttpsRequestConfiguration conf = getHttpsRequestConfiguration(token, type, mockListener.getPort());
         SenderStatusReporter reporter = new LogzioTestStatusReporter(logger);
-        LogzioSender logzioSender =
-                LogzioSender
-                        .builder()
-                        .setTasksExecutor(tasks)
-                        .setDrainTimeout(drainTimeout)
-                        .setReporter(reporter)
-                        .setHttpsRequestConfiguration(conf)
-                        .withInMemoryQueue()
-                        .setBufferThreshold(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
-                        .endInMemoryQueue()
-                        .build();
+        Builder logzioSenderBuilder = getLogzioSenderBuilder(drainTimeout, reporter, conf);
+        LogzioSender logzioSender = logzioSenderBuilder
+                .withInMemoryQueue()
+                .setCapacityInBytes(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
+                .endInMemoryQueue()
+                .build();
         logzioSender.start();
         sendLogs(loggerName, logzioSender, msgCount);
     }

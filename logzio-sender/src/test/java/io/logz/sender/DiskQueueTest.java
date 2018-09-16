@@ -2,6 +2,7 @@ package io.logz.sender;
 
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.TestEnvironment;
+import org.assertj.core.api.Fail;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,7 @@ import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class DiskQueueTest extends LogzioSenderTest{
+public class DiskQueueTest extends LogzioSenderTest {
     private final static int FS_PERCENT_THRESHOLD = 98;
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
     private boolean zeroThresholdBuffer = false;
@@ -48,7 +49,7 @@ public class DiskQueueTest extends LogzioSenderTest{
                 .builder()
                 .setDebug(false)
                 .setTasksExecutor(tasks)
-                .setDrainTimeout(drainTimeout)
+                .setDrainTimeoutSec(drainTimeout)
                 .setReporter(logy)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
                 .withDiskQueue()
@@ -72,7 +73,7 @@ public class DiskQueueTest extends LogzioSenderTest{
     }
 
     @Test
-    public void testLoggerCantWriteToEmptyDirectory() {
+    public void testSenderCantWriteToEmptyDirectory() {
         String token = "nowWeTestLoggerCantWriteToTmpDirectory";
         String type = "justTestingNoWriteDir";
         String loggerName = "changeBufferLocation";
@@ -84,6 +85,7 @@ public class DiskQueueTest extends LogzioSenderTest{
             setBufferDir(tempDirectory);
             LogzioSender testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
                     10 * 1000, tasks, false);
+            throw new LogzioParameterErrorException("Should not reach here", "fail");
         } catch(LogzioParameterErrorException e) {
             assertTrue(e.getMessage().contains(tempDirectory.getAbsolutePath()));
         }
@@ -93,7 +95,7 @@ public class DiskQueueTest extends LogzioSenderTest{
     }
 
     @Test
-    public void testLoggerCreatesDirectoryWhichDoesNotExists() throws Exception {
+    public void testSenderCreatesDirectoryWhichDoesNotExists() throws Exception {
         String token = "nowWeWantToChangeTheBufferLocation";
         String type = "justTestingExistence";
         String loggerName = "changeBufferLocation";

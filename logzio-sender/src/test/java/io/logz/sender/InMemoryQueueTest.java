@@ -33,10 +33,10 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .builder()
                 .setDebug(false)
                 .setTasksExecutor(tasks)
-                .setDrainTimeout(drainTimeout)
+                .setDrainTimeoutSec(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
                 .withInMemoryQueue()
-                    .setBufferThreshold(bufferThreshold)
+                    .setCapacityInBytes(bufferThreshold)
                 .endInMemoryQueue()
                 .setReporter(logy)
                 .build();

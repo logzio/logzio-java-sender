@@ -57,15 +57,15 @@ public abstract class LogzioSenderTest {
 
     protected abstract void setZeroThresholdBuffer() throws LogzioParameterErrorException;
 
-    int getMockListenerPort() {
+    protected int getMockListenerPort() {
         return mockListener.getPort();
     }
 
-    String getMockListenerHost() {
+    protected String getMockListenerHost() {
         return mockListener.getHost();
     }
 
-    String random(int numberOfChars) {
+    protected String random(int numberOfChars) {
         return UUID.randomUUID().toString().substring(0, numberOfChars-1);
     }
 
