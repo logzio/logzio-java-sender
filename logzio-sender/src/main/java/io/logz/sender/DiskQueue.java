@@ -64,18 +64,22 @@ public class DiskQueue implements LogsQueue {
     }
 
     private void validateEnoughSpace() {
-        if (dontCheckEnoughDiskSpace) {
-            return;
-        }
-        int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
-        if (actualUsedFsPercent >= fsPercentThreshold) {
-            if (isEnoughSpace) {
-                reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
-                        queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
+        try {
+            if (dontCheckEnoughDiskSpace) {
+                return;
             }
-            isEnoughSpace = false;
-        } else {
-            isEnoughSpace = true;
+            int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
+            if (actualUsedFsPercent >= fsPercentThreshold) {
+                if (isEnoughSpace) {
+                    reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
+                            queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
+                }
+                isEnoughSpace = false;
+            } else {
+                isEnoughSpace = true;
+            }
+        }catch (Throwable e) {
+            reporter.error("Uncaught error from validateEnoughSpace()", e);
         }
     }
 

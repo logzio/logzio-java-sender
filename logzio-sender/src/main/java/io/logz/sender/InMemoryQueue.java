@@ -12,7 +12,7 @@ public class InMemoryQueue implements LogsQueue {
     private final long inMemoryQueueCapacityInBytes;
     private final SenderStatusReporter reporter;
     private long size;
-    private ReentrantLock queueLock;
+    private final ReentrantLock queueLock;
 
     private InMemoryQueue(boolean dontCheckEnoughMemorySpace, long inMemoryQueueCapacityInBytes, SenderStatusReporter reporter) {
         logsBuffer = new ConcurrentLinkedQueue<>();

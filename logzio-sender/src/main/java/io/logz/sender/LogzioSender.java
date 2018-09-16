@@ -24,7 +24,7 @@ public class LogzioSender  {
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
-    private final LogsQueue logsBuffer;
+    private final LogsQueue logsQueue;
     private final int drainTimeout;
     private final boolean debug;
     private final SenderStatusReporter reporter;
@@ -34,15 +34,15 @@ public class LogzioSender  {
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogsQueue logsBuffer) throws LogzioParameterErrorException {
+                         LogsQueue logsQueue) throws LogzioParameterErrorException {
 
-        if (logsBuffer == null || reporter == null || httpsRequestConfiguration == null) {
-            throw new LogzioParameterErrorException("logsBuffer=" + logsBuffer + " reporter=" + reporter
+        if (logsQueue == null || reporter == null || httpsRequestConfiguration == null) {
+            throw new LogzioParameterErrorException("logsQueue=" + logsQueue + " reporter=" + reporter
                     + " httpsRequestConfiguration=" + httpsRequestConfiguration ,
                     "For some reason could not initialize URL. Cant recover..");
         }
 
-        this.logsBuffer = logsBuffer;
+        this.logsQueue = logsQueue;
         this.drainTimeout = drainTimeout;
         this.debug = debug;
         this.reporter = reporter;
@@ -67,9 +67,9 @@ public class LogzioSender  {
                                                                     boolean compressRequests)
             throws LogzioParameterErrorException {
 
-        LogsQueue logsBuffer = null;
+        LogsQueue logsQueue = null;
         if (bufferDir != null) {
-            logsBuffer = DiskQueue
+            logsQueue = DiskQueue
                     .builder(null, null)
                     .setDiskSpaceTasks(tasksExecutor)
                     .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
@@ -87,7 +87,7 @@ public class LogzioSender  {
                 .setLogzioType(logzioType)
                 .setLogzioToken(logzioToken)
                 .build();
-        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
+        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsQueue);
     }
 
     /**
@@ -104,19 +104,19 @@ public class LogzioSender  {
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, LogsQueue logsBuffer)
+                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue)
             throws LogzioParameterErrorException {
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
         LogzioSender logzioSenderInstance = logzioSenderInstances.get(httpsRequestConfiguration.getLogzioType());
         if (logzioSenderInstance == null) {
-            if (logsBuffer == null) {
-                throw new LogzioParameterErrorException("logsBuffer", "null");
+            if (logsQueue == null) {
+                throw new LogzioParameterErrorException("logsQueue", "null");
             }
 
             LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
-                    tasksExecutor, logsBuffer);
+                    tasksExecutor, logsQueue);
             logzioSenderInstances.put(httpsRequestConfiguration.getLogzioType(), logzioSender);
             return logzioSender;
         } else {
@@ -173,14 +173,14 @@ public class LogzioSender  {
 
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
-        logsBuffer.enqueue((jsonMessage+ "\n").getBytes(Charset.forName("UTF-8")));
+        logsQueue.enqueue((jsonMessage+ "\n").getBytes(Charset.forName("UTF-8")));
     }
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
         List<FormattedLogMessage> logsList = new ArrayList<>();
         int totalSize = 0;
-        while (!logsBuffer.isEmpty()) {
-            byte[] message  = logsBuffer.dequeue();
+        while (!logsQueue.isEmpty()) {
+            byte[] message  = logsQueue.dequeue();
             if (message != null && message.length > 0) {
                 logsList.add(new FormattedLogMessage(message));
                 totalSize += message.length;
@@ -194,8 +194,8 @@ public class LogzioSender  {
 
     private void drainQueue() {
         debug("Attempting to drain queue");
-        if (!logsBuffer.isEmpty()) {
-            while (!logsBuffer.isEmpty()) {
+        if (!logsQueue.isEmpty()) {
+            while (!logsQueue.isEmpty()) {
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
                 try {
                     httpsSyncSender.sendToLogzio(logsList);
@@ -205,7 +205,7 @@ public class LogzioSender  {
                     debug("Will retry in the next interval");
 
                     // And lets return everything to the queue
-                    logsList.forEach((logMessage) -> logsBuffer.enqueue(logMessage.getMessage()));
+                    logsList.forEach((logMessage) -> logsQueue.enqueue(logMessage.getMessage()));
 
                     // Lets wait for a new interval, something is wrong in the server side
                     break;
@@ -289,11 +289,11 @@ public class LogzioSender  {
                     debug,
                     reporter,
                     tasksExecutor,
-                    getLogsBuffer()
+                    getLogsQueue()
             );
         }
 
-        private LogsQueue getLogsBuffer() throws LogzioParameterErrorException {
+        private LogsQueue getLogsQueue() throws LogzioParameterErrorException {
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);

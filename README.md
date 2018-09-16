@@ -33,7 +33,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 #### Parameters for in-memory queue
 | Parameter          | Default                              | Explained  |
 | ------------------ | ------------------------------------ | ----- |
-| **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue |
+| **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
 #### Parameters for disk queue
