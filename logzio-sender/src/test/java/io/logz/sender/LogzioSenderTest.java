@@ -26,14 +26,14 @@ public abstract class LogzioSenderTest {
     private ScheduledExecutorService tasks;
 
     @Before
-    public void preTest() throws Exception {
+    public void startListenerAndExecutors() throws Exception {
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
     }
 
     @After
-    public void postTest() {
+    public void stopListenerAndExecutors() {
         if (mockListener != null)
              mockListener.stop();
         if (tasks != null){
