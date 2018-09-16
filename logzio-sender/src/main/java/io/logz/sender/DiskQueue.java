@@ -15,7 +15,6 @@ public class DiskQueue implements LogsQueue {
     private final SenderStatusReporter reporter;
     private final ScheduledExecutorService diskSpaceTasks;
     private volatile boolean isEnoughSpace;
-    private long droppedLogsCounter;
 
     private DiskQueue(File bufferDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
                       int gcPersistedQueueFilesIntervalSeconds, SenderStatusReporter reporter,
@@ -36,7 +35,6 @@ public class DiskQueue implements LogsQueue {
         this.fsPercentThreshold = fsPercentThreshold;
         this.diskSpaceTasks = diskSpaceTasks;
         this.isEnoughSpace = true;
-        this.droppedLogsCounter = 0;
         diskSpaceTasks.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
         diskSpaceTasks.scheduleWithFixedDelay(this::validateEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
     }
@@ -54,9 +52,6 @@ public class DiskQueue implements LogsQueue {
     public void enqueue(byte[] log) {
         if (isEnoughSpace) {
             logsBuffer.enqueue(log);
-        }else {
-            droppedLogsCounter += 1;
-            reporter.warning("So far dropped " + droppedLogsCounter + " logs");
         }
     }
 
@@ -76,12 +71,13 @@ public class DiskQueue implements LogsQueue {
         }
         int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
         if (actualUsedFsPercent >= fsPercentThreshold) {
-            reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
-                    queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
+            if (isEnoughSpace) {
+                reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
+                        queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
+            }
             isEnoughSpace = false;
         } else {
             isEnoughSpace = true;
-            droppedLogsCounter = 0;
         }
     }
 
