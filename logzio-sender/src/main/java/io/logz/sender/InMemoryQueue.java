@@ -52,7 +52,7 @@ public class InMemoryQueue implements LogsQueue {
             return true;
         }
 
-        if (size >= capacityInBytes ) {
+        if (size >= capacityInBytes) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
                     capacityInBytes/(MG_IN_BYTES)));
             return false;

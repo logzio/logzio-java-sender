@@ -106,7 +106,7 @@ public class LogzioSenderExample {
 
 
 ### Release notes
- - 1.0.12 - 1.0.15
+ - 1.0.12 - 1.0.16
    - separating https request from the sender
    - add implementation for in memory queue
    - add a builder for sender, http configuration, and buffers implementation  
