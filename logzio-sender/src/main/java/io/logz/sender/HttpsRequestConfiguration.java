@@ -74,13 +74,13 @@ public class HttpsRequestConfiguration {
             this.logzioListenerUrl = createURL(logzioListenerUrl);
         } catch (MalformedURLException e){
             throw new LogzioParameterErrorException("logzioUrl=" + logzioListenerUrl + " token=" + logzioToken
-                    + " type=" + logzioType, "For some reason could not initialize URL. Cant recover.." + e);
+                    + " type=" + logzioType, "URL is malformed. Cant recover.." + e);
         }
     }
 
     private URL createURL(String url) throws MalformedURLException {
         if (url == null || url.isEmpty()) {
-            throw new MalformedURLException();
+            throw new MalformedURLException("Empty or null URL");
         }
         return logzioType == null ?
                 new URL(url + "/?token=" + logzioToken) :
