@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class InMemoryQueue implements LogzioLogsBufferInterface {
+public class InMemoryQueue implements LogsQueue {
     private static final int ONE_MEGA_BYTE_IN_BYTES = 1024 * 1024;
     public static int DONT_LIMIT_BUFFER_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;

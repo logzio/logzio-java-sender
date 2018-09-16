@@ -23,7 +23,7 @@ public class LogzioSender  {
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
-    private final LogzioLogsBufferInterface logsBuffer;
+    private final LogsQueue logsBuffer;
     private final int drainTimeout;
     private final boolean debug;
     private final SenderStatusReporter reporter;
@@ -33,7 +33,7 @@ public class LogzioSender  {
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogzioLogsBufferInterface logsBuffer) throws LogzioParameterErrorException {
+                         LogsQueue logsBuffer) throws LogzioParameterErrorException {
 
         if (logsBuffer == null || reporter == null || httpsRequestConfiguration == null) {
             throw new LogzioParameterErrorException("logsBuffer=" + logsBuffer + " reporter=" + reporter
@@ -62,7 +62,7 @@ public class LogzioSender  {
             throws LogzioParameterErrorException {
 
 
-        LogzioLogsBufferInterface logsBuffer = null;
+        LogsQueue logsBuffer = null;
         if (bufferDir != null) {
             logsBuffer = DiskQueue
                     .builder(null, null)
@@ -94,7 +94,7 @@ public class LogzioSender  {
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, LogzioLogsBufferInterface logsBuffer)
+                                                ScheduledExecutorService tasksExecutor, LogsQueue logsBuffer)
             throws LogzioParameterErrorException {
         // We want one buffer per logzio data type.
         // so that's why I create separate buffers per type.
@@ -283,8 +283,8 @@ public class LogzioSender  {
             );
         }
 
-        private LogzioLogsBufferInterface getLogsBuffer() throws LogzioParameterErrorException {
-            LogzioLogsBufferInterface logsBuffer = null;
+        private LogsQueue getLogsBuffer() throws LogzioParameterErrorException {
+            LogsQueue logsBuffer = null;
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);

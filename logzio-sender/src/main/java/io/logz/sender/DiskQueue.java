@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class DiskQueue implements LogzioLogsBufferInterface{
+public class DiskQueue implements LogsQueue {
     private final BigQueue logsBuffer;
     private final File queueDirectory;
     private final boolean dontCheckEnoughDiskSpace;
