@@ -5,6 +5,7 @@ import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LogzioSender  {
+public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
@@ -50,6 +51,11 @@ public class LogzioSender  {
         debug("Created new LogzioSender class");
     }
 
+    /**
+     * Change constructor to a builder pattern
+     *
+     * @deprecated use {@link #builder()} instead.
+     */
     @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
                                                                     int drainTimeout, int fsPercentThreshold,
@@ -85,6 +91,11 @@ public class LogzioSender  {
         return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsBuffer);
     }
 
+    /**
+     * Change constructor to a builder pattern
+     *
+     * @deprecated use {@link #builder()} instead.
+     */
     @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
@@ -163,7 +174,7 @@ public class LogzioSender  {
 
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
-        logsBuffer.enqueue((jsonMessage+ "\n").getBytes());
+        logsBuffer.enqueue((jsonMessage+ "\n").getBytes(Charset.forName("UTF-8")));
     }
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
