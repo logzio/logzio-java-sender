@@ -5,7 +5,7 @@
 This sender sends logs messages to your [Logz.io](http://logz.io) account in JSON format, using non-blocking threading, bulks, and HTTPS encryption. Please note that this sender requires java 8 and up.
 
 ### Technical Information
-This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implementation of persistent queue, so all logs are backed up to a local file system before being sent. Once you send a log, it will be enqueued in the buffer and 100% non-blocking. There is a background task that will handle the log shipment for you. This jar is an "Uber-Jar" that shades both BigQueue, Gson and Guava to avoid "dependency hell".
+This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implementation of persistent queue, so all logs are backed up to a local file system before being sent. Once you send a log, it will be enqueued in the queue and 100% non-blocking. There is a background task that will handle the log shipment for you. This jar is an "Uber-Jar" that shades both BigQueue, Gson and Guava to avoid "dependency hell".
 
 ### Installation from maven
 ```xml
@@ -22,8 +22,8 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | ------------------ | ------------------------------------ | ----- |
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
-| **drainTimeoutSec**       | *5*                                    | How often the sender should drain the buffer (in seconds) |
-| **queueDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
+| **drainTimeoutSec**       | *5*                                    | How often the sender should drain the queue (in seconds) |
+| **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
@@ -39,7 +39,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 #### Parameters for disk queue
 | Parameter          | Default                              | Explained  |
 | ------------------ | ------------------------------------ | ----- |
-| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
+| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 
 
@@ -70,7 +70,7 @@ public class LogzioSenderExample {
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(httpsRequestConfiguration)
                         .withDiskQueue()
-                            .setBufferDir(bufferDir)
+                            .setQueueDir(queueDir)
                         .endDiskQueue()
                         .build();
         
@@ -101,7 +101,7 @@ import com.google.gson.JsonObject;
 public class LogzioSenderExample {
 
     public static void main(String[] args) {
-        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, logzioType, drainTimeoutSec,fileSystemFullPercentThreshold, bufferDir,
+        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, logzioType, drainTimeoutSec,fileSystemFullPercentThreshold, queueDir,
                         logzioUrl, socketTimeout, serverTimeout, true, new LogzioStatusReporter(){/*implement simple interface for logging sender logging */}, Executors.newScheduledThreadPool(2),30);
         sender.start();
         JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
@@ -117,7 +117,7 @@ public class LogzioSenderExample {
    - add implementation for in memory queue
  - 1.0.12 
    - separating https request from the sender
-   - add a builder for sender, http configuration, and buffers implementation  
+   - add a builder for sender, http configuration, and queues implementation  
  - 1.0.11 fix shaded
  - 1.0.10 add gzip compression
  - 1.0.9 add auto deploy
