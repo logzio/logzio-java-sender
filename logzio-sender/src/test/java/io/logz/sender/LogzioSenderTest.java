@@ -18,28 +18,29 @@ import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 public abstract class LogzioSenderTest {
-    private MockLogzioBulkListener mockListener;
+    protected MockLogzioBulkListener mockListener;
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
-    private LogzioSender testSender;
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
     private ScheduledExecutorService tasks;
 
     @Before
-    public void preTest() throws Exception {
+    public void startListenerAndExecutors() throws Exception {
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
     }
 
     @After
-    public void postTest() {
+    public void stopListenerAndExecutors() {
         if (mockListener != null)
              mockListener.stop();
-        tasks.shutdownNow();
+        if (tasks != null){
+            tasks.shutdownNow();
+        }
     }
 
-    private void sleepSeconds(int seconds) {
+    protected void sleepSeconds(int seconds) {
         logger.info("Sleeping {} [sec]...", seconds);
         try {
             Thread.sleep(seconds * 1000);
@@ -53,17 +54,17 @@ public abstract class LogzioSenderTest {
                                                        ScheduledExecutorService tasks,
                                                        boolean compressRequests) throws LogzioParameterErrorException;
 
-    protected abstract void setZeroThresholdBuffer() throws LogzioParameterErrorException;
+    protected abstract void setZeroThresholdQueue();
 
-    int getMockListenerPort() {
+    protected int getMockListenerPort() {
         return mockListener.getPort();
     }
 
-    String getMockListenerHost() {
+    protected String getMockListenerHost() {
         return mockListener.getHost();
     }
 
-    String random(int numberOfChars) {
+    protected String random(int numberOfChars) {
         return UUID.randomUUID().toString().substring(0, numberOfChars-1);
     }
 
@@ -99,7 +100,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
 
-        testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
+        LogzioSender testSender = createLogzioSender(token, type, drainTimeout, 10 * 1000,
                 10 * 1000,  tasks,  true);
 
 
@@ -113,10 +114,10 @@ public abstract class LogzioSenderTest {
     }
 
     @Test
-    public void multipleBufferDrains() throws Exception {
+    public void multipleQueueDrains() throws Exception {
         String token = "tokenWohooToken";
         String type = random(8);
-        String loggerName = "multipleBufferDrains";
+        String loggerName = "multipleQueueDrains";
         int drainTimeout = 2;
 
         String message1 = "Testing first drain - " + random(5);
@@ -168,11 +169,11 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "fsPercentDrop";
         int drainTimeoutSec = 1;
-        File tempDirectoryThatWillBeInTheSameFsAsTheBuffer = TestEnvironment.createTempDirectory();
-        tempDirectoryThatWillBeInTheSameFsAsTheBuffer.deleteOnExit();
+        File tempDirectoryThatWillBeInTheSameFsAsTheQueue = TestEnvironment.createTempDirectory();
+        tempDirectoryThatWillBeInTheSameFsAsTheQueue.deleteOnExit();
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
-        setZeroThresholdBuffer();
+        setZeroThresholdQueue();
         LogzioSender testSender = createLogzioSender(token, type, drainTimeoutSec, 10 * 1000,
                 10 * 1000, tasks, false);
 
@@ -182,7 +183,7 @@ public abstract class LogzioSenderTest {
         testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeoutSec);
         mockListener.assertNumberOfReceivedMsgs(0);
-        tempDirectoryThatWillBeInTheSameFsAsTheBuffer.delete();
+        tempDirectoryThatWillBeInTheSameFsAsTheQueue.delete();
     }
 
     @Test

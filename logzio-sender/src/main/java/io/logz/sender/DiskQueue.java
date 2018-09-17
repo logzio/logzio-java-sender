@@ -7,36 +7,34 @@ import java.io.File;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class DiskQueue implements LogzioLogsBufferInterface{
-    private final BigQueue logsBuffer;
+public class DiskQueue implements LogsQueue {
+    private final BigQueue logsQueue;
     private final File queueDirectory;
     private final boolean dontCheckEnoughDiskSpace;
     private final int fsPercentThreshold;
     private final SenderStatusReporter reporter;
-    private final ScheduledExecutorService diskSpaceTasks;
     private volatile boolean isEnoughSpace;
 
-    private DiskQueue(File bufferDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
+    private DiskQueue(File queueDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
                       int gcPersistedQueueFilesIntervalSeconds, SenderStatusReporter reporter,
                       int checkDiskSpaceInterval, ScheduledExecutorService diskSpaceTasks)
             throws LogzioParameterErrorException {
 
         this.reporter = reporter;
-        queueDirectory = bufferDir;
+        queueDirectory = queueDir;
         validateParameters();
         // divide bufferDir to dir and queue name
-        String dir = bufferDir.getAbsoluteFile().getParent();
-        String queueNameDir = bufferDir.getName();
+        String dir = queueDir.getAbsoluteFile().getParent();
+        String queueNameDir = queueDir.getName();
         if (dir == null || queueNameDir.isEmpty() ) {
-            throw new LogzioParameterErrorException("bufferDir", " value is empty: " + bufferDir.getAbsolutePath());
+            throw new LogzioParameterErrorException("queueDir", " value is empty: " + queueDir.getAbsolutePath());
         }
-        logsBuffer = new BigQueue(dir, queueNameDir);
+        logsQueue = new BigQueue(dir, queueNameDir);
         this.dontCheckEnoughDiskSpace = dontCheckEnoughDiskSpace;
         this.fsPercentThreshold = fsPercentThreshold;
-        this.diskSpaceTasks = diskSpaceTasks;
         this.isEnoughSpace = true;
         diskSpaceTasks.scheduleWithFixedDelay(this::gcBigQueue, 0, gcPersistedQueueFilesIntervalSeconds, TimeUnit.SECONDS);
-        diskSpaceTasks.scheduleWithFixedDelay(this::isEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
+        diskSpaceTasks.scheduleWithFixedDelay(this::validateEnoughSpace, 0, checkDiskSpaceInterval, TimeUnit.MILLISECONDS);
     }
 
     private void validateParameters() throws LogzioParameterErrorException {
@@ -51,37 +49,43 @@ public class DiskQueue implements LogzioLogsBufferInterface{
     @Override
     public void enqueue(byte[] log) {
         if (isEnoughSpace) {
-            logsBuffer.enqueue(log);
+            logsQueue.enqueue(log);
         }
     }
 
     @Override
     public byte[] dequeue() {
-        return logsBuffer.dequeue();
+        return logsQueue.dequeue();
     }
 
     @Override
     public boolean isEmpty() {
-        return logsBuffer.isEmpty();
+        return logsQueue.isEmpty();
     }
 
-    private void isEnoughSpace() {
-        if (dontCheckEnoughDiskSpace) {
-            return;
-        }
-        int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
-        if (actualUsedFsPercent >= fsPercentThreshold) {
-            reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
-                    queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
-            isEnoughSpace = false;
-        } else {
-            isEnoughSpace = true;
+    private void validateEnoughSpace() {
+        try {
+            if (dontCheckEnoughDiskSpace) {
+                return;
+            }
+            int actualUsedFsPercent = 100 - ((int) (((double) queueDirectory.getUsableSpace() / queueDirectory.getTotalSpace()) * 100));
+            if (actualUsedFsPercent >= fsPercentThreshold) {
+                if (isEnoughSpace) {
+                    reporter.warning(String.format("Logz.io: Dropping logs, as FS used space on %s is %d percent, and the drop threshold is %d percent",
+                            queueDirectory.getAbsolutePath(), actualUsedFsPercent, fsPercentThreshold));
+                }
+                isEnoughSpace = false;
+            } else {
+                isEnoughSpace = true;
+            }
+        } catch (Throwable e) {
+            reporter.error("Uncaught error from validateEnoughSpace()", e);
         }
     }
 
     private void gcBigQueue() {
         try {
-            logsBuffer.gc();
+            logsQueue.gc();
         } catch (Throwable e) {
             // We cant throw anything out, or the task will stop, so just swallow all
             reporter.error("Uncaught error from BigQueue.gc()", e);
@@ -98,7 +102,7 @@ public class DiskQueue implements LogzioLogsBufferInterface{
         private int fsPercentThreshold = 98;
         private int gcPersistedQueueFilesIntervalSeconds = 30;
         private int checkDiskSpaceInterval = 1000;
-        private File bufferDir;
+        private File queueDir;
         private SenderStatusReporter reporter;
         private ScheduledExecutorService diskSpaceTasks;
         private LogzioSender.Builder context;
@@ -126,8 +130,8 @@ public class DiskQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public Builder setBufferDir(File bufferDir) {
-            this.bufferDir = bufferDir;
+        public Builder setQueueDir(File queueDir) {
+            this.queueDir = queueDir;
             return this;
         }
 
@@ -141,13 +145,13 @@ public class DiskQueue implements LogzioLogsBufferInterface{
             return this;
         }
 
-        public LogzioSender.Builder EndDiskQueue() {
+        public LogzioSender.Builder endDiskQueue() {
             context.setDiskQueueBuilder(this);
             return context;
         }
 
         DiskQueue build() throws LogzioParameterErrorException {
-            return new DiskQueue(bufferDir, dontCheckEnoughDiskSpace, fsPercentThreshold,
+            return new DiskQueue(queueDir, dontCheckEnoughDiskSpace, fsPercentThreshold,
                     gcPersistedQueueFilesIntervalSeconds, reporter, checkDiskSpaceInterval, diskSpaceTasks);
         }
     }

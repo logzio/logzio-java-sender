@@ -5,7 +5,7 @@
 This sender sends logs messages to your [Logz.io](http://logz.io) account in JSON format, using non-blocking threading, bulks, and HTTPS encryption. Please note that this sender requires java 8 and up.
 
 ### Technical Information
-This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implementation of persistent queue, so all logs are backed up to a local file system before being sent. Once you send a log, it will be enqueued in the buffer and 100% non-blocking. There is a background task that will handle the log shipment for you. This jar is an "Uber-Jar" that shades both BigQueue, Gson and Guava to avoid "dependency hell".
+This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implementation of persistent queue, so all logs are backed up to a local file system before being sent. Once you send a log, it will be enqueued in the queue and 100% non-blocking. There is a background task that will handle the log shipment for you. This jar is an "Uber-Jar" that shades both BigQueue, Gson and Guava to avoid "dependency hell".
 
 ### Installation from maven
 ```xml
@@ -22,18 +22,25 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | ------------------ | ------------------------------------ | ----- |
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
-| **drainTimeoutSec**       | *5*                                    | How often the sender should drain the buffer (in seconds) |
-| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop buffering. When we will reach that percentage, the file system in which the buffer is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
-| **bufferDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
+| **drainTimeoutSec**       | *5*                                    | How often the sender should drain the queue (in seconds) |
+| **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
-| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
-| **bufferThreshold**       | *1024 * 1024 * 100*                                | The amount of memory disk we are allowed to use for the memory queue |
+
+#### Parameters for in-memory queue
+| Parameter          | Default                              | Explained  |
+| ------------------ | ------------------------------------ | ----- |
+| **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
+#### Parameters for disk queue
+| Parameter          | Default                              | Explained  |
+| ------------------ | ------------------------------------ | ----- |
+| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
+| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 
 
 
@@ -50,9 +57,6 @@ public class LogzioSenderExample {
         
         HttpsRequestConfiguration conf = HttpsRequestConfiguration
                         .builder()
-                        .setCompressRequests(true)
-                        .setConnectTimeout(10*1000)
-                        .setSocketTimeout(10*1000)
                         .setLogzioListenerUrl("https://listener.logz.io:8071")
                         .setLogzioType("javaSenderType")
                         .setLogzioToken("123456789")
@@ -62,30 +66,23 @@ public class LogzioSenderExample {
         // 1) disk queue example 
         LogzioSender logzioSender = LogzioSender
                         .builder()
-                        .setDebug(false)
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
-                        .setDrainTimeout(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                        .WithDiskMemoryQueue()
-                            .setBufferDir(bufferDir)
-                            .setFsPercentThreshold(fsPercentThreshold)
-                            .setCheckDiskSpaceInterval(1000)
-                            .setGcPersistedQueueFilesIntervalSeconds(30)
-                        .EndDiskQueue()
+                        .withDiskQueue()
+                            .setQueueDir(queueDir)
+                        .endDiskQueue()
                         .build();
         
         // 2) in memory queue example
         LogzioSender logzioSender = LogzioSender
                         .builder()
-                        .setDebug(false)
                         .setTasksExecutor(Executors.newScheduledThreadPool(3))
-                        .setDrainTimeout(drainTimeout)
+                        .setDrainTimeoutSec(drainTimeout)
                         .setReporter(new LogzioStatusReporter(){/*implement simple interface for logging sender logging */})
                         .setHttpsRequestConfiguration(conf)
-                        .WithInMemoryLogsBuffer()
-                            .setBufferThreshold(1024 * 1024 * 100) //100MB
-                        .EndInMemoryLogsBuffer()
+                        .withInMemoryQueue()
+                        .endInMemoryQueue()
                         .build();
 
         sender.start();
@@ -104,7 +101,7 @@ import com.google.gson.JsonObject;
 public class LogzioSenderExample {
 
     public static void main(String[] args) {
-        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, logzioType, drainTimeoutSec,fileSystemFullPercentThreshold, bufferDir,
+        LogzioSender sender =  LogzioSender.getOrCreateSenderByType(token, logzioType, drainTimeoutSec,fileSystemFullPercentThreshold, queueDir,
                         logzioUrl, socketTimeout, serverTimeout, true, new LogzioStatusReporter(){/*implement simple interface for logging sender logging */}, Executors.newScheduledThreadPool(2),30);
         sender.start();
         JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
@@ -116,10 +113,11 @@ public class LogzioSenderExample {
 
 
 ### Release notes
- - 1.0.12 - 1.0.15
-   - separating https request from the sender
+ - 1.0.16
    - add implementation for in memory queue
-   - add a builder for sender, http configuration, and buffers implementation  
+ - 1.0.12 
+   - separating https request from the sender
+   - add a builder for sender, http configuration, and queues implementation  
  - 1.0.11 fix shaded
  - 1.0.10 add gzip compression
  - 1.0.9 add auto deploy
