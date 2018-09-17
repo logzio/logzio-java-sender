@@ -54,7 +54,7 @@ public abstract class LogzioSenderTest {
                                                        ScheduledExecutorService tasks,
                                                        boolean compressRequests) throws LogzioParameterErrorException;
 
-    protected abstract void setZeroThresholdBuffer();
+    protected abstract void setZeroThresholdQueue();
 
     protected int getMockListenerPort() {
         return mockListener.getPort();
@@ -114,10 +114,10 @@ public abstract class LogzioSenderTest {
     }
 
     @Test
-    public void multipleBufferDrains() throws Exception {
+    public void multipleQueueDrains() throws Exception {
         String token = "tokenWohooToken";
         String type = random(8);
-        String loggerName = "multipleBufferDrains";
+        String loggerName = "multipleQueueDrains";
         int drainTimeout = 2;
 
         String message1 = "Testing first drain - " + random(5);
@@ -169,11 +169,11 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "fsPercentDrop";
         int drainTimeoutSec = 1;
-        File tempDirectoryThatWillBeInTheSameFsAsTheBuffer = TestEnvironment.createTempDirectory();
-        tempDirectoryThatWillBeInTheSameFsAsTheBuffer.deleteOnExit();
+        File tempDirectoryThatWillBeInTheSameFsAsTheQueue = TestEnvironment.createTempDirectory();
+        tempDirectoryThatWillBeInTheSameFsAsTheQueue.deleteOnExit();
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
-        setZeroThresholdBuffer();
+        setZeroThresholdQueue();
         LogzioSender testSender = createLogzioSender(token, type, drainTimeoutSec, 10 * 1000,
                 10 * 1000, tasks, false);
 
@@ -183,7 +183,7 @@ public abstract class LogzioSenderTest {
         testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeoutSec);
         mockListener.assertNumberOfReceivedMsgs(0);
-        tempDirectoryThatWillBeInTheSameFsAsTheBuffer.delete();
+        tempDirectoryThatWillBeInTheSameFsAsTheQueue.delete();
     }
 
     @Test

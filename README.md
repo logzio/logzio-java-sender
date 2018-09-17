@@ -23,7 +23,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
 | **drainTimeoutSec**       | *5*                                    | How often the sender should drain the buffer (in seconds) |
-| **bufferDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
+| **queueDir**          | *None*                                   | Where the sender should store the buffer. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |

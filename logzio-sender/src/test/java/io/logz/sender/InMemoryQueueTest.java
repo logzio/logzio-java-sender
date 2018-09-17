@@ -14,7 +14,7 @@ import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 public class InMemoryQueueTest extends LogzioSenderTest {
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
-    private boolean zeroThresholdBuffer = false;
+    private boolean zeroThresholdQueue = false;
 
     @Override
     protected LogzioSender createLogzioSender(String token, String type, Integer drainTimeout,
@@ -39,7 +39,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())
                 .build();
 
-        capacityInBytes = zeroThresholdBuffer ? 0 : capacityInBytes;
+        capacityInBytes = zeroThresholdQueue ? 0 : capacityInBytes;
         LogzioSender logzioSender = LogzioSender
                 .builder()
                 .setDebug(false)
@@ -47,7 +47,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
                 .setDrainTimeoutSec(drainTimeout)
                 .setHttpsRequestConfiguration(httpsRequestConfiguration)
                 .withInMemoryQueue()
-                .setInMemoryQueueCapacityInBytes(capacityInBytes)
+                .setCapacityInBytes(capacityInBytes)
                 .endInMemoryQueue()
                 .setReporter(logy)
                 .build();
@@ -57,12 +57,12 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     }
 
     @Override
-    protected void setZeroThresholdBuffer() {
-        this.zeroThresholdBuffer = true;
+    protected void setZeroThresholdQueue() {
+        this.zeroThresholdQueue = true;
     }
 
     @Test
-    public void checkCrossCapacityInBytes() throws LogzioParameterErrorException {
+    public void checkCapacityReachedToSizeBelowCapacity() throws LogzioParameterErrorException {
         String token = "checkCrossCapacityInBytes";
         String type = random(8);
         String loggerName = "checkCrossCapacityInBytesName";

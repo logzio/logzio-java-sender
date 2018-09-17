@@ -59,7 +59,7 @@ public class LogzioSender  {
     @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
                                                                     int drainTimeout, int fsPercentThreshold,
-                                                                    File bufferDir, String logzioUrl, int socketTimeout,
+                                                                    File queueDir, String logzioUrl, int socketTimeout,
                                                                     int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter,
                                                                     ScheduledExecutorService tasksExecutor,
@@ -68,14 +68,14 @@ public class LogzioSender  {
             throws LogzioParameterErrorException {
 
         LogsQueue logsQueue = null;
-        if (bufferDir != null) {
+        if (queueDir != null) {
             logsQueue = DiskQueue
                     .builder(null, null)
                     .setDiskSpaceTasks(tasksExecutor)
                     .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
                     .setReporter(reporter)
                     .setFsPercentThreshold(fsPercentThreshold)
-                    .setBufferDir(bufferDir)
+                    .setQueueDir(queueDir)
                     .build();
         }
         HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
@@ -96,18 +96,18 @@ public class LogzioSender  {
      * @deprecated use {@link #builder()} instead.
      */
     @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File bufferDir,
+    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File queueDir,
                                                                     String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
                                                                     SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
                                                                     int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, bufferDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
+        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, queueDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
                                                 ScheduledExecutorService tasksExecutor, LogsQueue logsQueue)
             throws LogzioParameterErrorException {
-        // We want one buffer per logzio data type.
-        // so that's why I create separate buffers per type.
+        // We want one queue per logzio data type.
+        // so that's why I create separate queues per type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
         LogzioSender logzioSenderInstance = logzioSenderInstances.get(httpsRequestConfiguration.getLogzioType());
         if (logzioSenderInstance == null) {

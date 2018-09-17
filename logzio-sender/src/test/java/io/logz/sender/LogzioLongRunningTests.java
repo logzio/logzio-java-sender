@@ -78,7 +78,7 @@ public class LogzioLongRunningTests {
         LogzioSender logzioSender = logzioSenderBuilder
                 .withDiskQueue()
                 .setGcPersistedQueueFilesIntervalSeconds(gcInterval)
-                .setBufferDir(tempDir)
+                .setQueueDir(tempDir)
                 .endDiskQueue()
                 .build();
         logzioSender.start();
@@ -97,7 +97,7 @@ public class LogzioLongRunningTests {
         Builder logzioSenderBuilder = getLogzioSenderBuilder(drainTimeout, reporter, conf);
         LogzioSender logzioSender = logzioSenderBuilder
                 .withInMemoryQueue()
-                .setInMemoryQueueCapacityInBytes(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
+                .setCapacityInBytes(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
                 .endInMemoryQueue()
                 .build();
         logzioSender.start();
