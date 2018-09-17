@@ -102,7 +102,7 @@ public class DiskQueue implements LogsQueue {
         private int fsPercentThreshold = 98;
         private int gcPersistedQueueFilesIntervalSeconds = 30;
         private int checkDiskSpaceInterval = 1000;
-        private File setQueueDir;
+        private File queueDir;
         private SenderStatusReporter reporter;
         private ScheduledExecutorService diskSpaceTasks;
         private LogzioSender.Builder context;
@@ -130,8 +130,8 @@ public class DiskQueue implements LogsQueue {
             return this;
         }
 
-        public Builder setQueueDir(File setQueueDir) {
-            this.setQueueDir = setQueueDir;
+        public Builder setQueueDir(File queueDir) {
+            this.queueDir = queueDir;
             return this;
         }
 
@@ -151,7 +151,7 @@ public class DiskQueue implements LogsQueue {
         }
 
         DiskQueue build() throws LogzioParameterErrorException {
-            return new DiskQueue(setQueueDir, dontCheckEnoughDiskSpace, fsPercentThreshold,
+            return new DiskQueue(queueDir, dontCheckEnoughDiskSpace, fsPercentThreshold,
                     gcPersistedQueueFilesIntervalSeconds, reporter, checkDiskSpaceInterval, diskSpaceTasks);
         }
     }

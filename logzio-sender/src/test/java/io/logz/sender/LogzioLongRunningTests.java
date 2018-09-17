@@ -97,7 +97,7 @@ public class LogzioLongRunningTests {
         Builder logzioSenderBuilder = getLogzioSenderBuilder(drainTimeout, reporter, conf);
         LogzioSender logzioSender = logzioSenderBuilder
                 .withInMemoryQueue()
-                .setCapacityInBytes(InMemoryQueue.DONT_LIMIT_BUFFER_SPACE)
+                .setCapacityInBytes(InMemoryQueue.DONT_LIMIT_QUEUE_SPACE)
                 .endInMemoryQueue()
                 .build();
         logzioSender.start();

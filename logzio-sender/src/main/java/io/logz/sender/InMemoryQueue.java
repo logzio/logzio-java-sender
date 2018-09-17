@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class InMemoryQueue implements LogsQueue {
     private static final int MB_IN_BYTES = 1024 * 1024;
-    public static int DONT_LIMIT_BUFFER_SPACE = -1;
+    public static int DONT_LIMIT_QUEUE_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;
     private final boolean dontCheckEnoughMemorySpace;
     private final long capacityInBytes;
@@ -83,7 +83,7 @@ public class InMemoryQueue implements LogsQueue {
 
         public Builder setCapacityInBytes(long inMemoryQueueCapacityInBytes) {
             this.inMemoryQueueCapacityInBytes = inMemoryQueueCapacityInBytes;
-            if (inMemoryQueueCapacityInBytes == DONT_LIMIT_BUFFER_SPACE) {
+            if (inMemoryQueueCapacityInBytes == DONT_LIMIT_QUEUE_SPACE) {
                 dontCheckEnoughMemorySpace = true;
             }
             return this;
