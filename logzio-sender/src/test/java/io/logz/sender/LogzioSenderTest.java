@@ -62,7 +62,7 @@ public abstract class LogzioSenderTest {
                     .setSocketTimeout(socketTimeout)
                     .setLogzioToken(token)
                     .setLogzioType(type)
-                    .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())
+                    .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + mockListener.getPort())
                     .build();
 
             return LogzioSender
@@ -81,14 +81,6 @@ public abstract class LogzioSenderTest {
     }
 
     protected abstract void setZeroThresholdQueue(LogzioSender.Builder logzioSenderBuilder);
-
-    protected int getMockListenerPort() {
-        return mockListener.getPort();
-    }
-
-    protected String getMockListenerHost() {
-        return mockListener.getHost();
-    }
 
     protected String random(int numberOfChars) {
         return UUID.randomUUID().toString().substring(0, numberOfChars-1);
