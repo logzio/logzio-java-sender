@@ -35,7 +35,7 @@
                             <include>com.google.code.gson:gson</include>
                         </includes>
                     </artifactSet>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
                     <relocations>
                         <relocation>
                             <pattern>com.google.common</pattern>
