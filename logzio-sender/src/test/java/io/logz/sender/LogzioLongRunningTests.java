@@ -140,7 +140,6 @@ public class LogzioLongRunningTests {
             }
 
             assertThat(threadIds).isNull();
-
         } finally {
             threads.forEach(Thread::interrupt);
         }
