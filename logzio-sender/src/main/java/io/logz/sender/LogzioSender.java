@@ -267,11 +267,17 @@ public class LogzioSender  {
         }
 
         public InMemoryQueue.Builder withInMemoryQueue() {
-            return InMemoryQueue.builder(this);
+            if (this.inMemoryQueueBuilder == null) {
+                this.inMemoryQueueBuilder = InMemoryQueue.builder(this);
+            }
+            return this.inMemoryQueueBuilder;
         }
 
         public DiskQueue.Builder withDiskQueue() {
-            return DiskQueue.builder(this, tasksExecutor);
+            if (this.diskQueueBuilder == null) {
+                this.diskQueueBuilder = DiskQueue.builder(this, tasksExecutor);
+            }
+            return this.diskQueueBuilder;
         }
 
         void setDiskQueueBuilder(DiskQueue.Builder diskQueueBuilder) {
