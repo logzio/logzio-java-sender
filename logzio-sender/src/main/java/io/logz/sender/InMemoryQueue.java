@@ -97,7 +97,7 @@ public class InMemoryQueue implements LogsQueue {
             return this;
         }
 
-        public Builder setLogsCountLimit(long logsCountLimit ) {
+        public Builder setLogsCountLimit(long logsCountLimit) {
             this.logsCountLimit  = logsCountLimit ;
             return this;
         }
