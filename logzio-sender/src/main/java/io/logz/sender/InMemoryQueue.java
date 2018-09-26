@@ -70,7 +70,7 @@ public class InMemoryQueue implements LogsQueue {
             return false;
         }
 
-        if (!dontCheckLogsCountLimit && logsCounter == logsCountLimit) {
+        if (!dontCheckLogsCountLimit && logsCounter >= logsCountLimit) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the logs counter threshold of %d logs",
                     logsCountLimit));
             return false;

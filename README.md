@@ -33,7 +33,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | Parameter          | Default                              | Explained  |
 | ------------------ | ------------------------------------ | ----- |
 | **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
-| **logsCountLimit**       | *-1*                                | The amount of logs we are allowed to use for the memory queue. Default value is -1 (the sender will not limit the queue by logs count)|
+| **logsCountLimit**       | *-1*                                | The number of logs in the memory queue before dropping new logs. Default value is -1 (the sender will not limit the queue by logs count)|
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
 #### Parameters for disk queue
