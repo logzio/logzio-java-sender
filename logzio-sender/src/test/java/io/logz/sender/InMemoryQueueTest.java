@@ -1,10 +1,9 @@
 package io.logz.sender;
 
 import com.google.gson.JsonObject;
+import io.logz.sender.LogzioSender.Builder;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
@@ -13,52 +12,38 @@ import java.util.concurrent.ScheduledExecutorService;
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 public class InMemoryQueueTest extends LogzioSenderTest {
-    private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
-    private boolean zeroThresholdQueue = false;
+    private final static long defaultCapacityInBytes = 100 * 1024 * 1024;
 
     @Override
-    protected LogzioSender createLogzioSender(String token, String type, Integer drainTimeout,
+    protected Builder getLogzioSenderBuilder(String token, String type, Integer drainTimeout,
                                               Integer socketTimeout, Integer serverTimeout,
                                               ScheduledExecutorService tasks, boolean compressRequests)
             throws LogzioParameterErrorException {
-        return createLogzioSender(token, type, drainTimeout, socketTimeout, serverTimeout,
-                tasks, compressRequests, 100 * 1024 * 1024);
-    }
-    private LogzioSender createLogzioSender(String token, String type, Integer drainTimeout,
-                                              Integer socketTimeout, Integer serverTimeout,
-                                              ScheduledExecutorService tasks, boolean compressRequests, long capacityInBytes)
-            throws LogzioParameterErrorException {
-        LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                .builder()
-                .setCompressRequests(compressRequests)
-                .setConnectTimeout(serverTimeout)
-                .setSocketTimeout(socketTimeout)
-                .setLogzioToken(token)
-                .setLogzioType(type)
-                .setLogzioListenerUrl("http://" + getMockListenerHost() + ":" + getMockListenerPort())
-                .build();
 
-        capacityInBytes = zeroThresholdQueue ? 0 : capacityInBytes;
-        LogzioSender logzioSender = LogzioSender
-                .builder()
-                .setDebug(false)
-                .setTasksExecutor(tasks)
-                .setDrainTimeoutSec(drainTimeout)
-                .setHttpsRequestConfiguration(httpsRequestConfiguration)
-                .withInMemoryQueue()
-                .setCapacityInBytes(capacityInBytes)
-                .endInMemoryQueue()
-                .setReporter(logy)
-                .build();
+        Builder logzioSenderBuilder = super.getLogzioSenderBuilder(token, type, drainTimeout,
+                socketTimeout, serverTimeout, tasks, compressRequests);
 
-        logzioSender.start();
-        return logzioSender;
+        setCapacityInBytes(logzioSenderBuilder, defaultCapacityInBytes);
+        return logzioSenderBuilder;
     }
 
     @Override
-    protected void setZeroThresholdQueue() {
-        this.zeroThresholdQueue = true;
+    protected void setZeroThresholdQueue(Builder logzioSenderBuilder) {
+        setCapacityInBytes(logzioSenderBuilder, 0);
+    }
+
+    private void setCapacityInBytes(Builder logzioSenderBuilder, long capacityInBytes) {
+        logzioSenderBuilder
+                .withInMemoryQueue()
+                    .setCapacityInBytes(capacityInBytes)
+                .endInMemoryQueue();
+    }
+
+    private void setLogsCountLimit(Builder logzioSenderBuilder, long logsCounterLimit) {
+        logzioSenderBuilder
+                .withInMemoryQueue()
+                    .setLogsCountLimit(logsCounterLimit)
+                .endInMemoryQueue();
     }
 
     @Test
@@ -71,10 +56,49 @@ public class InMemoryQueueTest extends LogzioSenderTest {
 
         String message = "Log before drop - " + random(5);
         JsonObject log = createJsonMessage(loggerName, message);
+
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
-        LogzioSender testSender = createLogzioSender(token, type,  drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false, logSize * successfulLogs);
+
+        Builder testSenderBuilder = getLogzioSenderBuilder(token, type,  drainTimeout, 10 * 1000,
+                10 * 1000, tasks, false);
+        setCapacityInBytes(testSenderBuilder, logSize * successfulLogs);
+
+        LogzioSender testSender = createLogzioSender(testSenderBuilder);
+
+        sleepSeconds(drainTimeout - 1);
+        for(int i = 0; i <= successfulLogs; i++) {
+            testSender.send(log);
+        }
+
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertNumberOfReceivedMsgs(successfulLogs);
+
+        sleepSeconds(2 * drainTimeout);
+        testSender.send(log);
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertNumberOfReceivedMsgs(successfulLogs + 1);
+        tasks.shutdownNow();
+    }
+
+    @Test
+    public void checkLogMessageCountLimitWithCapacityInBytes() throws LogzioParameterErrorException {
+        String token = "checkLogMessageCountLimitOnly";
+        String type = random(8);
+        String loggerName = "checkLogMessageCountLimitOnly";
+        int drainTimeout = 2;
+        int successfulLogs = 3;
+
+        String message = "Log before drop - " + random(5);
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
+
+        Builder testSenderBuilder = getLogzioSenderBuilder(token, type,  drainTimeout, 10 * 1000,
+                10 * 1000, tasks, false);
+        setLogsCountLimit(testSenderBuilder, successfulLogs);
+
+        LogzioSender testSender = createLogzioSender(testSenderBuilder);
 
         sleepSeconds(drainTimeout - 1);
         for(int i = 0; i <= successfulLogs; i++) {

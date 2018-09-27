@@ -23,7 +23,6 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
 | **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
 | **drainTimeoutSec**       | *5*                                    | How often the sender should drain the queue (in seconds) |
-| **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
 | **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
 | **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
@@ -34,11 +33,13 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | Parameter          | Default                              | Explained  |
 | ------------------ | ------------------------------------ | ----- |
 | **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
+| **logsCountLimit**       | *-1*                                | The number of logs in the memory queue before dropping new logs. Default value is -1 (the sender will not limit the queue by logs count)|
 | **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
 #### Parameters for disk queue
 | Parameter          | Default                              | Explained  |
 | ------------------ | ------------------------------------ | ----- |
+| **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
 | **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
 
@@ -113,6 +114,8 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.17
+   - add support for log count limit option 
  - 1.0.16
    - add implementation for in memory queue
  - 1.0.12 

@@ -9,17 +9,23 @@ public class InMemoryQueue implements LogsQueue {
     public static int DONT_LIMIT_QUEUE_SPACE = -1;
     private final ConcurrentLinkedQueue<byte[]> logsBuffer;
     private final boolean dontCheckEnoughMemorySpace;
+    private final boolean dontCheckLogsCountLimit;
     private final long capacityInBytes;
+    private final long logsCountLimit;
     private final SenderStatusReporter reporter;
     private volatile long size;
+    private volatile long logsCounter;
     private final ReentrantLock queueLock;
 
-    private InMemoryQueue(boolean dontCheckEnoughMemorySpace, long capacityInBytes, SenderStatusReporter reporter) {
+    private InMemoryQueue(long capacityInBytes, long logsCountLimit, SenderStatusReporter reporter) {
         logsBuffer = new ConcurrentLinkedQueue<>();
-        this.dontCheckEnoughMemorySpace = dontCheckEnoughMemorySpace;
+        this.dontCheckEnoughMemorySpace = capacityInBytes == DONT_LIMIT_QUEUE_SPACE;
+        this.dontCheckLogsCountLimit = logsCountLimit == DONT_LIMIT_QUEUE_SPACE;
         this.capacityInBytes = capacityInBytes;
+        this.logsCountLimit = logsCountLimit;
         this.reporter = reporter;
         this.size = 0;
+        this.logsCounter = 0;
         this.queueLock = new ReentrantLock();
     }
 
@@ -30,6 +36,7 @@ public class InMemoryQueue implements LogsQueue {
             if (isEnoughSpace()) {
                 logsBuffer.add(log);
                 size += log.length;
+                logsCounter += 1;
                 return;
             }
         } finally {
@@ -44,6 +51,7 @@ public class InMemoryQueue implements LogsQueue {
         try {
             log = logsBuffer.remove();
             size -= log.length;
+            logsCounter -= 1;
         } finally {
             queueLock.unlock();
         }
@@ -56,12 +64,15 @@ public class InMemoryQueue implements LogsQueue {
     }
 
     private boolean isEnoughSpace() {
-        if (dontCheckEnoughMemorySpace) {
-            return true;
-        }
-        if (size >= capacityInBytes) {
+        if (!dontCheckEnoughMemorySpace && size >= capacityInBytes) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",
                     capacityInBytes/(MB_IN_BYTES)));
+            return false;
+        }
+
+        if (!dontCheckLogsCountLimit && logsCounter >= logsCountLimit) {
+            reporter.warning(String.format("Logz.io: Dropping logs - we crossed the logs counter threshold of %d logs",
+                    logsCountLimit));
             return false;
         }
         return true;
@@ -73,8 +84,8 @@ public class InMemoryQueue implements LogsQueue {
 
     public static class Builder {
         private long inMemoryQueueCapacityInBytes = MB_IN_BYTES * 100; //100MB memory limit
+        private long logsCountLimit = DONT_LIMIT_QUEUE_SPACE;
         private SenderStatusReporter reporter;
-        private boolean dontCheckEnoughMemorySpace = false;
         private LogzioSender.Builder context;
 
         Builder(LogzioSender.Builder context) {
@@ -83,9 +94,11 @@ public class InMemoryQueue implements LogsQueue {
 
         public Builder setCapacityInBytes(long inMemoryQueueCapacityInBytes) {
             this.inMemoryQueueCapacityInBytes = inMemoryQueueCapacityInBytes;
-            if (inMemoryQueueCapacityInBytes == DONT_LIMIT_QUEUE_SPACE) {
-                dontCheckEnoughMemorySpace = true;
-            }
+            return this;
+        }
+
+        public Builder setLogsCountLimit(long logsCountLimit) {
+            this.logsCountLimit  = logsCountLimit ;
             return this;
         }
 
@@ -100,7 +113,7 @@ public class InMemoryQueue implements LogsQueue {
         }
 
         public InMemoryQueue build() {
-            return new InMemoryQueue(dontCheckEnoughMemorySpace, inMemoryQueueCapacityInBytes, reporter);
+            return new InMemoryQueue(inMemoryQueueCapacityInBytes, logsCountLimit, reporter);
         }
     }
 
