@@ -4,7 +4,9 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +25,7 @@ public class LogzioSender  {
 
     private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
+    private static final byte[] NEW_LINE_AS_UTF8_BYTE_ARRAY = "\n".getBytes(StandardCharsets.UTF_8);
 
     private final LogsQueue logsQueue;
     private final int drainTimeout;
@@ -174,6 +177,23 @@ public class LogzioSender  {
     public void send(JsonObject jsonMessage) {
         // Return the json, while separating lines with \n
         logsQueue.enqueue((jsonMessage+ "\n").getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Send byte array to Logz.io
+     * @implNote This method is not recommended to use since it is up to the user to supply with a valid UTF8 json byte array
+     * representation. In any case the byte[] is not valid, the logs will not be sent.
+     * @param jsonStringAsUTF8ByteArray UTF8 byte array representation of a valid json object.
+     */
+    public void send(byte[] jsonStringAsUTF8ByteArray) {
+        // Return the byte[], while separating lines with \n
+        try(ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(jsonStringAsUTF8ByteArray.length + 1)) {
+            byteOutputStream.write(jsonStringAsUTF8ByteArray);
+            byteOutputStream.write(NEW_LINE_AS_UTF8_BYTE_ARRAY);
+            logsQueue.enqueue(byteOutputStream.toByteArray());
+        } catch (IOException e) {
+            reporter.error("Fail to write jsonStringAsUTF8ByteArray, dropping log", e);
+        }
     }
 
     private List<FormattedLogMessage> dequeueUpToMaxBatchSize() {
