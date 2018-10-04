@@ -55,8 +55,20 @@ public class LogzioSender  {
 
     /**
      * Change constructor to a builder pattern
-     *
      * @deprecated use {@link #builder()} instead.
+     * @param logzioToken your logz.io token
+     * @param logzioType your logz.io log type
+     * @param drainTimeout how long between sending a new bulk of logs
+     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
+     * @param queueDir queue File
+     * @param logzioUrl your logz.io url
+     * @param socketTimeout socket timeout
+     * @param connectTimeout connect timeout
+     * @param debug set true if debug prints are needed
+     * @param reporter reporter for logging messages
+     * @param tasksExecutor thread pool for the different scheduled tasks
+     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
+     * @param compressRequests set true if https send compressed payload
      */
     @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
@@ -96,6 +108,18 @@ public class LogzioSender  {
      * Change constructor to a builder pattern
      *
      * @deprecated use {@link #builder()} instead.
+     * @param logzioToken your logz.io token
+     * @param logzioType your logz.io log type
+     * @param drainTimeout how long between sending a new bulk of logs
+     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
+     * @param queueDir queue File
+     * @param logzioUrl your logz.io url
+     * @param socketTimeout socket timeout
+     * @param connectTimeout connect timeout
+     * @param debug set true if debug prints are needed
+     * @param reporter reporter for logging messages
+     * @param tasksExecutor thread pool for the different scheduled tasks
+     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
      */
     @Deprecated
     public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File queueDir,
@@ -180,7 +204,7 @@ public class LogzioSender  {
 
     /**
      * Send byte array to Logz.io
-     * @implNote This method is not the recommended method to use
+     * This method is not the recommended method to use
      * since it is up to the user to supply with a valid UTF8 json byte array
      * representation. In any case the byte[] is not valid, the logs will not be sent.
      * @param jsonStringAsUTF8ByteArray UTF8 byte array representation of a valid json object.
