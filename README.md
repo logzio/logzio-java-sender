@@ -114,6 +114,8 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.0.18
+   - add byte[] send option
  - 1.0.17
    - add support for log count limit option 
  - 1.0.16

@@ -9,12 +9,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 public class HttpsSyncSender {
     private final HttpsRequestConfiguration configuration;
     private final SenderStatusReporter reporter;
+    private static final byte[] NEW_LINE_AS_UTF8_BYTE_ARRAY = "\n".getBytes(StandardCharsets.UTF_8);
+    private static final int NEW_LINE_AS_UTF8_BYTE_ARRAY_SIZE = NEW_LINE_AS_UTF8_BYTE_ARRAY.length;
 
 
     public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter) {
@@ -39,10 +42,11 @@ public class HttpsSyncSender {
     }
 
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
-        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages));
+        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(sizeInBytes(messages) + NEW_LINE_AS_UTF8_BYTE_ARRAY_SIZE * messages.size());
              OutputStream os = configuration.isCompressRequests() ? new GZIPOutputStream(byteOutputStream) : byteOutputStream) {
             for (FormattedLogMessage currMessage : messages) {
                 os.write(currMessage.getMessage());
+                os.write(NEW_LINE_AS_UTF8_BYTE_ARRAY);
             }
             // Need close before return for gzip compression, The stream only knows to compress and write the last bytes when you tell it to close
             os.close();
