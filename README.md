@@ -34,7 +34,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | ------------------ | ------------------------------------ | ----- |
 | **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
 | **logsCountLimit**       | *-1*                                | The number of logs in the memory queue before dropping new logs. Default value is -1 (the sender will not limit the queue by logs count)|
-| **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
+
 
 #### Parameters for disk queue
 | Parameter          | Default                              | Explained  |
@@ -42,6 +42,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 | **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
 | **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
 | **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
+| **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
 
 
 
