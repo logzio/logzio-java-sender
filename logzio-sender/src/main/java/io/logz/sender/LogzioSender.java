@@ -5,9 +5,6 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -53,82 +50,6 @@ public class LogzioSender  {
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
         this.tasksExecutor = tasksExecutor;
         debug("Created new LogzioSender class");
-    }
-
-    /**
-     * Change constructor to a builder pattern
-     * @deprecated use {@link #builder()} instead.
-     * @param logzioToken your logz.io token
-     * @param logzioType your logz.io log type
-     * @param drainTimeout how long between sending a new bulk of logs
-     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
-     * @param queueDir queue File
-     * @param logzioUrl your logz.io url
-     * @param socketTimeout socket timeout
-     * @param connectTimeout connect timeout
-     * @param debug set true if debug prints are needed
-     * @param reporter reporter for logging messages
-     * @param tasksExecutor thread pool for the different scheduled tasks
-     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
-     * @param compressRequests set true if https send compressed payload
-     */
-    @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
-                                                                    int drainTimeout, int fsPercentThreshold,
-                                                                    File queueDir, String logzioUrl, int socketTimeout,
-                                                                    int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter,
-                                                                    ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds,
-                                                                    boolean compressRequests)
-            throws LogzioParameterErrorException {
-
-        LogsQueue logsQueue = null;
-        if (queueDir != null) {
-            logsQueue = DiskQueue
-                    .builder(null, null)
-                    .setDiskSpaceTasks(tasksExecutor)
-                    .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
-                    .setReporter(reporter)
-                    .setFsPercentThreshold(fsPercentThreshold)
-                    .setQueueDir(queueDir)
-                    .build();
-        }
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                .builder()
-                .setCompressRequests(compressRequests)
-                .setConnectTimeout(connectTimeout)
-                .setSocketTimeout(socketTimeout)
-                .setLogzioListenerUrl(logzioUrl)
-                .setLogzioType(logzioType)
-                .setLogzioToken(logzioToken)
-                .build();
-        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsQueue);
-    }
-
-    /**
-     * Change constructor to a builder pattern
-     *
-     * @deprecated use {@link #builder()} instead.
-     * @param logzioToken your logz.io token
-     * @param logzioType your logz.io log type
-     * @param drainTimeout how long between sending a new bulk of logs
-     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
-     * @param queueDir queue File
-     * @param logzioUrl your logz.io url
-     * @param socketTimeout socket timeout
-     * @param connectTimeout connect timeout
-     * @param debug set true if debug prints are needed
-     * @param reporter reporter for logging messages
-     * @param tasksExecutor thread pool for the different scheduled tasks
-     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
-     */
-    @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File queueDir,
-                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, queueDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
