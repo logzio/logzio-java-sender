@@ -1,13 +1,12 @@
 package io.logz.sender;
 
+import com.google.common.hash.Hashing;
 import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LogzioSender  {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
 
-    private static final Map<String, LogzioSender> logzioSenderInstances = new HashMap<>();
+    private static final Map<AbstractMap.SimpleImmutableEntry<String, String>, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
     private final LogsQueue logsQueue;
@@ -53,89 +52,19 @@ public class LogzioSender  {
         debug("Created new LogzioSender class");
     }
 
-    /**
-     * Change constructor to a builder pattern
-     * @deprecated use {@link #builder()} instead.
-     * @param logzioToken your logz.io token
-     * @param logzioType your logz.io log type
-     * @param drainTimeout how long between sending a new bulk of logs
-     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
-     * @param queueDir queue File
-     * @param logzioUrl your logz.io url
-     * @param socketTimeout socket timeout
-     * @param connectTimeout connect timeout
-     * @param debug set true if debug prints are needed
-     * @param reporter reporter for logging messages
-     * @param tasksExecutor thread pool for the different scheduled tasks
-     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
-     * @param compressRequests set true if https send compressed payload
-     */
-    @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType,
-                                                                    int drainTimeout, int fsPercentThreshold,
-                                                                    File queueDir, String logzioUrl, int socketTimeout,
-                                                                    int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter,
-                                                                    ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds,
-                                                                    boolean compressRequests)
-            throws LogzioParameterErrorException {
-
-        LogsQueue logsQueue = null;
-        if (queueDir != null) {
-            logsQueue = DiskQueue
-                    .builder(null, null)
-                    .setDiskSpaceTasks(tasksExecutor)
-                    .setGcPersistedQueueFilesIntervalSeconds(gcPersistedQueueFilesIntervalSeconds)
-                    .setReporter(reporter)
-                    .setFsPercentThreshold(fsPercentThreshold)
-                    .setQueueDir(queueDir)
-                    .build();
-        }
-        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                .builder()
-                .setCompressRequests(compressRequests)
-                .setConnectTimeout(connectTimeout)
-                .setSocketTimeout(socketTimeout)
-                .setLogzioListenerUrl(logzioUrl)
-                .setLogzioType(logzioType)
-                .setLogzioToken(logzioToken)
-                .build();
-        return getLogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter, tasksExecutor, logsQueue);
-    }
-
-    /**
-     * Change constructor to a builder pattern
-     *
-     * @deprecated use {@link #builder()} instead.
-     * @param logzioToken your logz.io token
-     * @param logzioType your logz.io log type
-     * @param drainTimeout how long between sending a new bulk of logs
-     * @param fsPercentThreshold FS percent threshold for the queue that uses the disk
-     * @param queueDir queue File
-     * @param logzioUrl your logz.io url
-     * @param socketTimeout socket timeout
-     * @param connectTimeout connect timeout
-     * @param debug set true if debug prints are needed
-     * @param reporter reporter for logging messages
-     * @param tasksExecutor thread pool for the different scheduled tasks
-     * @param gcPersistedQueueFilesIntervalSeconds interval for cleaning shipped logs from the disk
-     */
-    @Deprecated
-    public static synchronized LogzioSender getOrCreateSenderByType(String logzioToken, String logzioType, int drainTimeout, int fsPercentThreshold, File queueDir,
-                                                                    String logzioUrl, int socketTimeout, int connectTimeout, boolean debug,
-                                                                    SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                                                                    int gcPersistedQueueFilesIntervalSeconds) throws LogzioParameterErrorException {
-        return getOrCreateSenderByType(logzioToken, logzioType, drainTimeout, fsPercentThreshold, queueDir, logzioUrl, socketTimeout, connectTimeout, debug, reporter, tasksExecutor, gcPersistedQueueFilesIntervalSeconds, false);
-    }
-
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
                                                 ScheduledExecutorService tasksExecutor, LogsQueue logsQueue)
             throws LogzioParameterErrorException {
-        // We want one queue per logzio data type.
-        // so that's why I create separate queues per type.
+        String tokenHash = Hashing.sha256()
+                .hashString(httpsRequestConfiguration.getLogzioToken(), StandardCharsets.UTF_8)
+                .toString()
+                .substring(0,7);
+        AbstractMap.SimpleImmutableEntry<String, String> tokenAndTypePair = new AbstractMap.SimpleImmutableEntry<>
+                (tokenHash, httpsRequestConfiguration.getLogzioType());
+        // We want one queue per logzio token and data type.
+        // so that's why I create separate queues per token and data type.
         // BUT - users not always understand the notion of types at first, and can define multiple data sender on the same type - and this is what I want to protect by this factory.
-        LogzioSender logzioSenderInstance = logzioSenderInstances.get(httpsRequestConfiguration.getLogzioType());
+        LogzioSender logzioSenderInstance = logzioSenderInstances.get(tokenAndTypePair);
         if (logzioSenderInstance == null) {
             if (logsQueue == null) {
                 throw new LogzioParameterErrorException("logsQueue", "null");
@@ -143,7 +72,7 @@ public class LogzioSender  {
 
             LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
                     tasksExecutor, logsQueue);
-            logzioSenderInstances.put(httpsRequestConfiguration.getLogzioType(), logzioSender);
+            logzioSenderInstances.put(tokenAndTypePair, logzioSender);
             return logzioSender;
         } else {
             reporter.info("Already found appender configured for type " + httpsRequestConfiguration.getLogzioType()
