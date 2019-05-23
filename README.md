@@ -115,6 +115,11 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.1.0
+   - remove deprecated getOrCreateSenderByType function
+   - changed logzioSenderInstances Map key to hold an immutable pair of hashed token and log type
+ - 1.0.19-20
+   - minor dependency security updates
  - 1.0.18
    - add byte[] send option
  - 1.0.17
