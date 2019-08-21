@@ -166,7 +166,6 @@ public class LogzioSender  {
                 List<FormattedLogMessage> logsList = dequeueUpToMaxBatchSize();
                 try {
                     httpsSyncSender.sendToLogzio(logsList);
-
                 } catch (LogzioServerErrorException e) {
                     debug("Could not send log to logz.io: ", e);
                     debug("Will retry in the next interval");

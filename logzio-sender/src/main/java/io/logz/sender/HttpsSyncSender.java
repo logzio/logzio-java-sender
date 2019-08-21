@@ -69,47 +69,18 @@ public class HttpsSyncSender {
             int currentRetrySleep = configuration.getInitialWaitBeforeRetryMS();
 
             for (int currTry = 1; currTry <= configuration.getMaxRetriesAttempts(); currTry++) {
-
                 boolean shouldRetry = true;
                 int responseCode = 0;
                 String responseMessage = "";
                 IOException savedException = null;
 
                 try {
-                    HttpURLConnection conn = (HttpURLConnection) configuration.getLogzioListenerUrl().openConnection();
-                    conn.setRequestMethod(configuration.getRequestMethod());
-                    conn.setRequestProperty("Content-length", String.valueOf(payload.length));
-                    conn.setRequestProperty("Content-Type", "text/plain");
-                    if (configuration.isCompressRequests()){
-                        conn.setRequestProperty("Content-Encoding", "gzip");
-                    }
-                    conn.setReadTimeout(configuration.getSocketTimeout());
-                    conn.setConnectTimeout(configuration.getConnectTimeout());
-                    conn.setDoOutput(true);
-                    conn.setDoInput(true);
-
-                    conn.getOutputStream().write(payload);
-
+                    HttpURLConnection conn = getHttpURLConnection(payload);
                     responseCode = conn.getResponseCode();
                     responseMessage = conn.getResponseMessage();
 
                     if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-                        BufferedReader bufferedReader = null;
-                        try {
-                            StringBuilder problemDescription = new StringBuilder();
-                            InputStream errorStream = conn.getErrorStream();
-                            if (errorStream != null) {
-                                bufferedReader = new BufferedReader(new InputStreamReader((errorStream)));
-                                bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
-                                reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
-                            }
-                        } finally {
-                            if (bufferedReader != null) {
-                                try {
-                                    bufferedReader.close();
-                                } catch(Exception e) {}
-                            }
-                        }
+                        readBadRequest(conn);
                     }
                     if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
                         reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
@@ -121,33 +92,67 @@ public class HttpsSyncSender {
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
-                if (!shouldRetry && responseCode == HttpURLConnection.HTTP_OK) {
-                    reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
-                    break;
-
-                } else {
-
-                    if (currTry == configuration.getMaxRetriesAttempts()){
-
+                if (shouldRetry) {
+                    if (currTry == configuration.getMaxRetriesAttempts()) {
                         if (savedException != null) {
-
                             reporter.error("Got IO exception on the last bulk try to logz.io", savedException);
                         }
                         // Giving up, something is broken on Logz.io side, we will try again later
                         throw new LogzioServerErrorException("Got HTTP " + responseCode + " code from logz.io, with message: " + responseMessage);
                     }
 
-                    reporter.warning("Could not send log to logz.io, retry (" + currTry + "/" + configuration.getMaxRetriesAttempts()+ ")");
+                    reporter.warning("Could not send log to logz.io, retry (" + currTry + "/" + configuration.getMaxRetriesAttempts() + ")");
                     reporter.warning("Sleeping for " + currentRetrySleep + " ms and will try again.");
                     Thread.sleep(currentRetrySleep);
                     currentRetrySleep *= 2;
+                } else {
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
+                    }
+                    break;
                 }
             }
-
         } catch (InterruptedException e) {
             reporter.info("Got interrupted exception");
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void readBadRequest(HttpURLConnection conn) {
+        BufferedReader bufferedReader = null;
+        try {
+            StringBuilder problemDescription = new StringBuilder();
+            InputStream errorStream = conn.getErrorStream();
+            if (errorStream != null) {
+                bufferedReader = new BufferedReader(new InputStreamReader((errorStream)));
+                bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
+                reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
+            }
+        } finally {
+            if (bufferedReader != null) {
+                try {
+                    bufferedReader.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
+    private HttpURLConnection getHttpURLConnection(byte[] payload) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) configuration.getLogzioListenerUrl().openConnection();
+        conn.setRequestMethod(configuration.getRequestMethod());
+        conn.setRequestProperty("Content-length", String.valueOf(payload.length));
+        conn.setRequestProperty("Content-Type", "text/plain");
+        if (configuration.isCompressRequests()) {
+            conn.setRequestProperty("Content-Encoding", "gzip");
+        }
+        conn.setReadTimeout(configuration.getSocketTimeout());
+        conn.setConnectTimeout(configuration.getConnectTimeout());
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
+
+        conn.getOutputStream().write(payload);
+        return conn;
     }
 
 }
