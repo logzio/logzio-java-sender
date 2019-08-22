@@ -40,6 +40,7 @@ public class MockLogzioBulkListener implements Closeable {
     private Queue<LogRequest> logRequests = new ConcurrentLinkedQueue<>();
     private final String host;
     private final int port;
+    private int malformedLogs = 0;
 
     private boolean isServerTimeoutMode = false;
     private boolean raiseExceptionOnLog = false;
@@ -86,8 +87,10 @@ public class MockLogzioBulkListener implements Closeable {
                         logger.debug("got log: {} ", line);
                     });
                     logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
-
-                    // Tell Jetty we are ok, and it should return 200
+                } catch (IllegalArgumentException e) {
+                    malformedLogs++;
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                } finally {
                     baseRequest.setHandled(true);
                 }
             }
@@ -264,6 +267,10 @@ public class MockLogzioBulkListener implements Closeable {
         return logRequests.size();
     }
 
+    public int getNumberOfReceivedMalformedLogs() {
+        return malformedLogs;
+    }
+
     public MockLogzioBulkListener.LogRequest assertLogReceivedByMessage(String message) {
         Optional<MockLogzioBulkListener.LogRequest> logRequest = getLogByMessageField(message);
         assertThat(logRequest.isPresent()).describedAs("Log with message '"+message+"' received").isTrue();
@@ -273,6 +280,12 @@ public class MockLogzioBulkListener implements Closeable {
     public void assertNumberOfReceivedMsgs(int count) {
         assertThat(getNumberOfReceivedLogs())
                 .describedAs("Messages on mock listener: {}", getReceivedMsgs())
+                .isEqualTo(count);
+    }
+
+    public void assertNumberOfReceivedMalformedMsgs(int count) {
+        assertThat(getNumberOfReceivedMalformedLogs())
+                .describedAs("Malformed messages on mock listener: {}", malformedLogs)
                 .isEqualTo(count);
     }
 
