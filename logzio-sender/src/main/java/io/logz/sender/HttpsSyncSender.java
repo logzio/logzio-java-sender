@@ -57,7 +57,7 @@ public class HttpsSyncSender {
             int currentRetrySleep = configuration.getInitialWaitBeforeRetryMS();
 
             for (int currTry = 1; currTry <= configuration.getMaxRetriesAttempts(); currTry++) {
-                boolean shouldRetry = true;
+                boolean retry = true;
                 int responseCode = 0;
                 String responseMessage = "";
                 IOException savedException = null;
@@ -66,13 +66,13 @@ public class HttpsSyncSender {
                     HttpURLConnection conn = sendRequest(payload);
                     responseCode = conn.getResponseCode();
                     responseMessage = conn.getResponseMessage();
-                    shouldRetry = shouldRetry(payload, responseCode, responseMessage, conn);
+                    retry = shouldRetry(payload, responseCode, responseMessage, conn);
                 } catch (IOException e) {
                     savedException = e;
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
-                if (shouldRetry) {
+                if (retry) {
                     currentRetrySleep = tryBackoff(currentRetrySleep, currTry, responseCode, responseMessage, savedException);
                 } else {
                     break;
@@ -100,7 +100,7 @@ public class HttpsSyncSender {
     }
 
     private boolean shouldRetry(byte[] payload, int responseCode, String responseMessage, HttpURLConnection conn) {
-        boolean shouldRetry = false;
+        boolean retry = false;
         if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
             readResponse(conn);
         }
@@ -110,9 +110,9 @@ public class HttpsSyncSender {
         else if (responseCode == HttpURLConnection.HTTP_OK) {
             reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
         } else {
-            shouldRetry = true;
+            retry = true;
         }
-        return shouldRetry;
+        return retry;
     }
 
     private void readResponse(HttpURLConnection conn) {
