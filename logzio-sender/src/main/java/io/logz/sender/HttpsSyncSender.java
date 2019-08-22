@@ -20,25 +20,13 @@ public class HttpsSyncSender {
     private static final int NEW_LINE_AS_UTF8_BYTE_ARRAY_SIZE = NEW_LINE_AS_UTF8_BYTE_ARRAY.length;
 
 
-    public HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter) {
+    HttpsSyncSender(HttpsRequestConfiguration configuration, SenderStatusReporter reporter) {
         this.configuration = configuration;
         this.reporter = reporter;
     }
 
     public HttpsRequestConfiguration getConfiguration() {
         return configuration;
-    }
-
-    private boolean shouldRetry(int statusCode) {
-        boolean shouldRetry = true;
-        switch (statusCode) {
-            case HttpURLConnection.HTTP_OK:
-            case HttpURLConnection.HTTP_BAD_REQUEST:
-            case HttpURLConnection.HTTP_UNAUTHORIZED:
-                shouldRetry = false;
-                break;
-        }
-        return shouldRetry;
     }
 
     private byte[] toNewLineSeparatedByteArray(List<FormattedLogMessage> messages) {
@@ -63,7 +51,7 @@ public class HttpsSyncSender {
         return totalSize;
     }
 
-    public void sendToLogzio(List<FormattedLogMessage> messages) throws LogzioServerErrorException {
+    void sendToLogzio(List<FormattedLogMessage> messages) throws LogzioServerErrorException {
         try {
             byte[] payload = toNewLineSeparatedByteArray(messages);
             int currentRetrySleep = configuration.getInitialWaitBeforeRetryMS();
@@ -75,40 +63,18 @@ public class HttpsSyncSender {
                 IOException savedException = null;
 
                 try {
-                    HttpURLConnection conn = getHttpURLConnection(payload);
+                    HttpURLConnection conn = sendRequest(payload);
                     responseCode = conn.getResponseCode();
                     responseMessage = conn.getResponseMessage();
-
-                    if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-                        readBadRequest(conn);
-                    }
-                    if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                        reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
-                    }
-
-                    shouldRetry = shouldRetry(responseCode);
+                    shouldRetry = shouldRetry(payload, responseCode, responseMessage, conn);
                 } catch (IOException e) {
                     savedException = e;
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
                 if (shouldRetry) {
-                    if (currTry == configuration.getMaxRetriesAttempts()) {
-                        if (savedException != null) {
-                            reporter.error("Got IO exception on the last bulk try to logz.io", savedException);
-                        }
-                        // Giving up, something is broken on Logz.io side, we will try again later
-                        throw new LogzioServerErrorException("Got HTTP " + responseCode + " code from logz.io, with message: " + responseMessage);
-                    }
-
-                    reporter.warning("Could not send log to logz.io, retry (" + currTry + "/" + configuration.getMaxRetriesAttempts() + ")");
-                    reporter.warning("Sleeping for " + currentRetrySleep + " ms and will try again.");
-                    Thread.sleep(currentRetrySleep);
-                    currentRetrySleep *= 2;
+                    currentRetrySleep = tryBackoff(currentRetrySleep, currTry, responseCode, responseMessage, savedException);
                 } else {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
-                    }
                     break;
                 }
             }
@@ -118,7 +84,38 @@ public class HttpsSyncSender {
         }
     }
 
-    private void readBadRequest(HttpURLConnection conn) {
+    private int tryBackoff(int currentRetrySleep, int currTry, int responseCode, String responseMessage, IOException savedException) throws LogzioServerErrorException, InterruptedException {
+        if (currTry == configuration.getMaxRetriesAttempts()) {
+            if (savedException != null) {
+                reporter.error("Got IO exception on the last bulk try to logz.io", savedException);
+            }
+            // Giving up, something is broken on Logz.io side, we will try again later
+            throw new LogzioServerErrorException("Got HTTP " + responseCode + " code from logz.io, with message: " + responseMessage);
+        }
+
+        reporter.warning("Could not send log to logz.io, retry (" + currTry + "/" + configuration.getMaxRetriesAttempts() + ")");
+        reporter.warning("Sleeping for " + currentRetrySleep + " ms and will try again.");
+        Thread.sleep(currentRetrySleep);
+        return currentRetrySleep * 2;
+    }
+
+    private boolean shouldRetry(byte[] payload, int responseCode, String responseMessage, HttpURLConnection conn) {
+        boolean shouldRetry = false;
+        if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
+            readResponse(conn);
+        }
+        else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
+        }
+        else if (responseCode == HttpURLConnection.HTTP_OK) {
+            reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
+        } else {
+            shouldRetry = true;
+        }
+        return shouldRetry;
+    }
+
+    private void readResponse(HttpURLConnection conn) {
         BufferedReader bufferedReader = null;
         try {
             StringBuilder problemDescription = new StringBuilder();
@@ -132,13 +129,13 @@ public class HttpsSyncSender {
             if (bufferedReader != null) {
                 try {
                     bufferedReader.close();
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                 }
             }
         }
     }
 
-    private HttpURLConnection getHttpURLConnection(byte[] payload) throws IOException {
+    private HttpURLConnection sendRequest(byte[] payload) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) configuration.getLogzioListenerUrl().openConnection();
         conn.setRequestMethod(configuration.getRequestMethod());
         conn.setRequestProperty("Content-length", String.valueOf(payload.length));
