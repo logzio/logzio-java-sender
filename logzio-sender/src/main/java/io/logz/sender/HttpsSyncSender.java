@@ -66,14 +66,14 @@ public class HttpsSyncSender {
                     HttpURLConnection conn = sendRequest(payload);
                     responseCode = conn.getResponseCode();
                     responseMessage = conn.getResponseMessage();
-                    retry = shouldRetry(payload, responseCode, responseMessage, conn);
+                    retry = handleResponse(payload, responseCode, responseMessage, conn);
                 } catch (IOException e) {
                     savedException = e;
                     reporter.error("Got IO exception - " + e.getMessage());
                 }
 
                 if (retry) {
-                    currentRetrySleep = tryBackoff(currentRetrySleep, currTry, responseCode, responseMessage, savedException);
+                    currentRetrySleep = handleRetry(currentRetrySleep, currTry, responseCode, responseMessage, savedException);
                 } else {
                     break;
                 }
@@ -84,7 +84,7 @@ public class HttpsSyncSender {
         }
     }
 
-    private int tryBackoff(int currentRetrySleep, int currTry, int responseCode, String responseMessage, IOException savedException) throws LogzioServerErrorException, InterruptedException {
+    private int handleRetry(int currentRetrySleep, int currTry, int responseCode, String responseMessage, IOException savedException) throws LogzioServerErrorException, InterruptedException {
         if (currTry == configuration.getMaxRetriesAttempts()) {
             if (savedException != null) {
                 reporter.error("Got IO exception on the last bulk try to logz.io", savedException);
@@ -99,10 +99,13 @@ public class HttpsSyncSender {
         return currentRetrySleep * 2;
     }
 
-    private boolean shouldRetry(byte[] payload, int responseCode, String responseMessage, HttpURLConnection conn) {
+    private boolean handleResponse(byte[] payload, int responseCode, String responseMessage, HttpURLConnection conn) {
         boolean retry = false;
         if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-            readResponse(conn);
+            String errorMessage = readErrorStream(conn);
+            if (errorMessage != null) {
+                reporter.warning(errorMessage);
+            }
         }
         else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
             reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
@@ -115,7 +118,7 @@ public class HttpsSyncSender {
         return retry;
     }
 
-    private void readResponse(HttpURLConnection conn) {
+    private String readErrorStream(HttpURLConnection conn) {
         BufferedReader bufferedReader = null;
         try {
             StringBuilder problemDescription = new StringBuilder();
@@ -123,7 +126,7 @@ public class HttpsSyncSender {
             if (errorStream != null) {
                 bufferedReader = new BufferedReader(new InputStreamReader((errorStream)));
                 bufferedReader.lines().forEach(line -> problemDescription.append("\n").append(line));
-                reporter.warning(String.format("Got 400 from logzio, here is the output: %s", problemDescription));
+                return String.format("Got 400 from logzio, here is the output: %s", problemDescription);
             }
         } finally {
             if (bufferedReader != null) {
@@ -133,6 +136,7 @@ public class HttpsSyncSender {
                 }
             }
         }
+        return null;
     }
 
     private HttpURLConnection sendRequest(byte[] payload) throws IOException {
