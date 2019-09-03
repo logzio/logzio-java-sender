@@ -111,6 +111,31 @@ public abstract class LogzioSenderTest {
     }
 
     @Test
+    public void malformedBulk() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsT";
+        String type = random(8);
+        String loggerName = "malformedBulk";
+        int drainTimeout = 1;
+
+        String message1 = "Testing.." + random(5);
+        String message2 = "Warning test.." + random(5);
+
+        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
+                10 * 1000, 10 * 1000, tasks,false);
+        LogzioSender testSender = createLogzioSender(testSenderBuilder);
+
+        testSender.send(createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message2));
+        testSender.send("bug".getBytes(StandardCharsets.UTF_8));
+        sleepSeconds(drainTimeout * 5);
+
+        mockListener.assertNumberOfReceivedMsgs(2);
+        mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
+        mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+        mockListener.assertNumberOfReceivedMalformedMsgs(1);
+    }
+
+    @Test
     public void simpleByteArrayAppending() throws Exception {
         String token = "aBcDeFgHiJkLmNoPqRsT";
         String type = random(8);
