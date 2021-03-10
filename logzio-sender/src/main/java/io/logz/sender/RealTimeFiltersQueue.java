@@ -11,12 +11,14 @@ public class RealTimeFiltersQueue implements LogsQueue{
     private Filter[] RTQueryFilters;
     private Filter[] defaultFilters;
     private LogsQueue filteredQueue;
+    private SenderStatusReporter reporter;
 
 
-    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, LogsQueue filteredQueue) {
+    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
         this.RTQueryFilters = realTimeQueryFilters;
         this.defaultFilters = defaultFilters;
         this.filteredQueue = filteredQueue;
+        this.reporter = reporter;
     }
 
     private boolean shouldEnqueue(JsonObject log) {
@@ -38,9 +40,14 @@ public class RealTimeFiltersQueue implements LogsQueue{
     @Override
     public void enqueue(byte[] log) {
         String strJson = new String(log, StandardCharsets.UTF_8);
-        JsonObject jsonMsg = new Gson().fromJson(strJson, JsonObject.class);
-        if (shouldEnqueue(jsonMsg)) {
-            filteredQueue.enqueue(strJson.getBytes(StandardCharsets.UTF_8));
+        try {
+
+            JsonObject jsonMsg = new Gson().fromJson(strJson, JsonObject.class);
+            if (shouldEnqueue(jsonMsg)) {
+                filteredQueue.enqueue(strJson.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (ClassCastException e) {
+            reporter.error("failed to create msg object", e);
         }
     }
 
@@ -63,6 +70,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
         private Filter[] RTQueryFilters = new  Filter[0];
         private Filter[] defaultFilters = new  Filter[0];
         private LogsQueue filteredQueue;
+        private SenderStatusReporter reporter;
 
         public RealTimeFiltersQueue.Builder setRealTimeQueryFilters(Filter[] realTimeQueryFilters) {
             this.RTQueryFilters = realTimeQueryFilters;
@@ -79,8 +87,13 @@ public class RealTimeFiltersQueue implements LogsQueue{
                 return this;
         }
 
+        public RealTimeFiltersQueue.Builder setReporter(SenderStatusReporter reporter) {
+            this.reporter = reporter;
+            return this;
+        }
+
         public RealTimeFiltersQueue build() {
-            return new RealTimeFiltersQueue(RTQueryFilters, defaultFilters,  filteredQueue);
+            return new RealTimeFiltersQueue(RTQueryFilters, defaultFilters, filteredQueue, reporter);
         }
     }
 
