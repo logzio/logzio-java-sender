@@ -32,10 +32,12 @@ public class LogzioSender  {
     private ScheduledExecutorService tasksExecutor;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsSyncSender httpsSyncSender;
+    private final List<Filter> defaultFilters;
+    private List<Filter> realTimeQueryFilters;
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogsQueue logsQueue) throws LogzioParameterErrorException {
+                         LogsQueue logsQueue, List<Filter> defaultFilters) throws LogzioParameterErrorException {
 
         if (logsQueue == null || reporter == null || httpsRequestConfiguration == null) {
             throw new LogzioParameterErrorException("logsQueue=" + logsQueue + " reporter=" + reporter
@@ -49,11 +51,13 @@ public class LogzioSender  {
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
         this.tasksExecutor = tasksExecutor;
+        this.defaultFilters = defaultFilters;
+
         debug("Created new LogzioSender class");
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue)
+                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue,String[] defaultFilterStrings)
             throws LogzioParameterErrorException {
         String tokenHash = Hashing.sha256()
                 .hashString(httpsRequestConfiguration.getLogzioToken(), StandardCharsets.UTF_8)
@@ -69,9 +73,13 @@ public class LogzioSender  {
             if (logsQueue == null) {
                 throw new LogzioParameterErrorException("logsQueue", "null");
             }
+            List<Filter> defaultFilters = new ArrayList<>();
+            for (String strFilter : defaultFilterStrings) {
+                defaultFilters.add(new SimpleJQLFilterFactory());
+            }
 
             LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
-                    tasksExecutor, logsQueue);
+                    tasksExecutor, logsQueue, defaultFilters);
             logzioSenderInstances.put(tokenAndTypePair, logzioSender);
             return logzioSender;
         } else {
