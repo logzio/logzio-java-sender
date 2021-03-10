@@ -1,5 +1,7 @@
 package io.logz.sender;
 
+import com.google.gson.JsonObject;
+import com.jayway.jsonpath.JsonPath;
 import io.logz.sender.LogzioSender.Builder;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.TestEnvironment;
@@ -73,6 +75,35 @@ public class DiskQueueTest extends LogzioSenderTest {
         tempDirectory.delete();
         tasks.shutdownNow();
     }
+
+
+//    @Test
+//    public void simpleFiltering() throws Exception {
+//        String token = "aBcDeFgHiJkLmNoPqRsT";
+//        String type = random(8);
+//        String loggerName = "simpleAppending";
+//        int drainTimeout = 2;
+//
+////        JsonObject json = new JsonObject();
+////        json.addProperty("type", "something");
+////        json.addProperty("count", 5);
+////        json.addProperty("msg", "all by myself");
+//        String json = "{\"menu\": {\n" +
+//                "  \"id\": \"file\",\n" +
+//                "  \"value\": \"File\",\n" +
+//                "  \"popup\": {\n" +
+//                "    \"menuitem\": [\n" +
+//                "      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"},\n" +
+//                "      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"},\n" +
+//                "      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}\n" +
+//                "    ]\n" +
+//                "  }\n" +
+//                "}}";
+//        String json2 = "{\"kaki\":\"yarok\"}";
+//
+//        System.out.println(JsonPath.parse("[" + json + "]").read("$..[?(@.id)]").toString());
+//
+//    }
 
     @Test
     public void testSenderCreatesDirectoryWhichDoesNotExists() throws Exception {

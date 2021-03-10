@@ -295,7 +295,7 @@ public class LogzioSender  {
             rtfQueueBuilder.setReporter(reporter);
             List<Filter> defaultFilters = new ArrayList<>();
             for (String strFilter : this.defaultFilters) {
-                defaultFilters.add(new SimpleJQLFilterFactory());
+                defaultFilters.add(new JsonPathFilter(strFilter));
             }
             rtfQueueBuilder.setDefaultFilters(defaultFilters);
             return rtfQueueBuilder.build();

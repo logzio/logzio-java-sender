@@ -111,6 +111,47 @@ public abstract class LogzioSenderTest {
     }
 
     @Test
+    public void simpleFiltering() throws Exception {
+        String token = "aBcDeFgHiJkLmNoPqRsT";
+        String type = random(8);
+        String loggerName = "simpleAppending";
+        int drainTimeout = 2;
+
+//        JsonObject json = new JsonObject();
+//        json.addProperty("type", "something");
+//        json.addProperty("count", 5);
+//        json.addProperty("msg", "all by myself");
+        String json = "{\"menu\": {\n" +
+                "  \"id\": \"file\",\n" +
+                "  \"value\": \"File\",\n" +
+                "  \"popup\": {\n" +
+                "    \"menuitem\": [\n" +
+                "      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"},\n" +
+                "      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"},\n" +
+                "      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}\n" +
+                "    ]\n" +
+                "  }\n" +
+                "}}";
+        String  json2 = "{\"kaki\":\"yarok\"}";
+
+        //System.out.println(JsonPath.parse(json).read("$.sdds.[?(@.id)]").toString());
+
+        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
+                10 * 1000, 10 * 1000, tasks,false);
+        testSenderBuilder.setDefaultFilters(new String[]{"$..[?(@.id)]"});
+        LogzioSender testSender = createLogzioSender(testSenderBuilder);
+
+        testSender.send(json.getBytes(StandardCharsets.UTF_8));
+        testSender.send(json2.getBytes(StandardCharsets.UTF_8));
+//        testSender.send( createJsonMessage(loggerName, message2));
+        sleepSeconds(drainTimeout  *3);
+//
+        mockListener.assertNumberOfReceivedMsgs(1);
+//        mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
+//        mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+    }
+
+    @Test
     public void malformedBulk() throws Exception {
         String token = "aBcDeFgHiJkLmNoPqRsT";
         String type = random(8);

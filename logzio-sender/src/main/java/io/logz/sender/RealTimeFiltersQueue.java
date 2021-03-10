@@ -10,7 +10,7 @@ import java.util.List;
 
 public class RealTimeFiltersQueue implements LogsQueue{
 
-    private List<Filter> RTQueryFilters;
+    private List<Filter> RTQueryFilters = new ArrayList<>();
     private List<Filter> defaultFilters;
     private LogsQueue filteredQueue;
     private SenderStatusReporter reporter;
@@ -22,7 +22,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
         this.reporter = reporter;
     }
 
-    private boolean shouldEnqueue(JsonObject log) {
+    private boolean shouldEnqueue(String log) {
         for (Filter RTQFilter : RTQueryFilters) {
             if (RTQFilter.filter(log)) {
                 return true;
@@ -45,9 +45,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
     public void enqueue(byte[] log) {
         String strJson = new String(log, StandardCharsets.UTF_8);
         try {
-
-            JsonObject jsonMsg = new Gson().fromJson(strJson, JsonObject.class);
-            if (shouldEnqueue(jsonMsg)) {
+            if (shouldEnqueue(strJson)) {
                 filteredQueue.enqueue(strJson.getBytes(StandardCharsets.UTF_8));
             }
         } catch (ClassCastException e) {

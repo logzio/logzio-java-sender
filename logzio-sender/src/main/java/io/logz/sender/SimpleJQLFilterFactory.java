@@ -1,7 +1,5 @@
 package io.logz.sender;
 
-import com.google.gson.JsonObject;
-
 public class SimpleJQLFilterFactory implements Filter {
     @Override
     public Filter parseFilterFromString(String strFilter) {
@@ -9,7 +7,7 @@ public class SimpleJQLFilterFactory implements Filter {
     }
 
     @Override
-    public boolean filter(JsonObject log) {
+    public boolean filter(String log) {
         return true;
     }
 }

@@ -106,6 +106,16 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.burt</groupId>
+            <artifactId>jmespath</artifactId>
+            <version>0.5.0</version>
+        </dependency>
     </dependencies>
 
 </project>
