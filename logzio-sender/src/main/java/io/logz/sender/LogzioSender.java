@@ -275,7 +275,8 @@ public class LogzioSender  {
                 inMemoryQueueBuilder.setReporter(reporter);
                 rtfQueueBuilder.setFilteredQueue(inMemoryQueueBuilder.build());
             }
-            Filter[] realTimeQueryFilters = new Filter[0];
+            rtfQueueBuilder.setReporter(reporter);
+            Filter[] realTimeQueryFilters = new Filter[1];
             realTimeQueryFilters[0] = new SimpleJQLFilterFactory();
             rtfQueueBuilder.setRealTimeQueryFilters(realTimeQueryFilters);
             return rtfQueueBuilder.build();

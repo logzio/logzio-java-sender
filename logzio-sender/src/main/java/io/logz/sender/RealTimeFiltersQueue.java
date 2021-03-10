@@ -48,6 +48,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
             }
         } catch (ClassCastException e) {
             reporter.error("failed to create msg object", e);
+            filteredQueue.enqueue(strJson.getBytes(StandardCharsets.UTF_8));
         }
     }
 
