@@ -10,10 +10,10 @@ public class RealTimeFiltersQueue implements LogsQueue{
 
     private Filter[] RTQueryFilters;
     private Filter[] defaultFilters;
-    private InMemoryQueue filteredQueue;
+    private LogsQueue filteredQueue;
 
 
-    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, InMemoryQueue filteredQueue) {
+    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, LogsQueue filteredQueue) {
         this.RTQueryFilters = realTimeQueryFilters;
         this.defaultFilters = defaultFilters;
         this.filteredQueue = filteredQueue;
@@ -62,7 +62,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
     public static class Builder {
         private Filter[] RTQueryFilters = new  Filter[0];
         private Filter[] defaultFilters = new  Filter[0];
-        private InMemoryQueue filteredQueue;
+        private LogsQueue filteredQueue;
 
         public RealTimeFiltersQueue.Builder setRealTimeQueryFilters(Filter[] realTimeQueryFilters) {
             this.RTQueryFilters = realTimeQueryFilters;
@@ -74,8 +74,9 @@ public class RealTimeFiltersQueue implements LogsQueue{
             return this;
         }
 
-        public RealTimeFiltersQueue.Builder setFilteredQueue(InMemoryQueue filteredQueue) {
+        public RealTimeFiltersQueue.Builder setFilteredQueue(LogsQueue filteredQueue) {
                 this.filteredQueue = filteredQueue;
+                return this;
         }
 
         public RealTimeFiltersQueue build() {
