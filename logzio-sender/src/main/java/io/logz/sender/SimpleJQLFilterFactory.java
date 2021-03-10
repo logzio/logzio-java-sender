@@ -2,16 +2,15 @@ package io.logz.sender;
 
 import com.google.gson.JsonObject;
 
-public interface SimpleJQLFilterFactory {
-    Filter simpleJQL = new Filter() {
-        @Override
-        public Filter parseFilterFromString(String strFilter) {
-            return simpleJQL;
-        }
+public class SimpleJQLFilterFactory implements Filter {
+    @Override
+    public Filter parseFilterFromString(String strFilter) {
+        return this;
+    }
 
-        @Override
-        public boolean filter(JsonObject log) {
-            return true;
-        }
-    };
+    @Override
+    public boolean filter(JsonObject log) {
+        return true;
+    }
 }
+
