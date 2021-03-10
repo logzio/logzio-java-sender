@@ -25,8 +25,9 @@ public class LogzioSender  {
     private static final Map<AbstractMap.SimpleImmutableEntry<String, String>, LogzioSender> logzioSenderInstances = new HashMap<>();
     private static final int FINAL_DRAIN_TIMEOUT_SEC = 20;
 
-    private final LogsQueue logsQueue;
+    private final RealTimeFiltersQueue logsQueue;
     private final int drainTimeout;
+    private final int pollInterval;
     private final boolean debug;
     private final SenderStatusReporter reporter;
     private ScheduledExecutorService tasksExecutor;
@@ -34,9 +35,9 @@ public class LogzioSender  {
     private final HttpsSyncSender httpsSyncSender;
     private List<Filter> realTimeQueryFilters;
 
-    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
+    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout,  int pollInterval, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogsQueue logsQueue) throws LogzioParameterErrorException {
+                         RealTimeFiltersQueue logsQueue) throws LogzioParameterErrorException {
 
         if (logsQueue == null || reporter == null || httpsRequestConfiguration == null) {
             throw new LogzioParameterErrorException("logsQueue=" + logsQueue + " reporter=" + reporter
@@ -46,6 +47,7 @@ public class LogzioSender  {
 
         this.logsQueue = logsQueue;
         this.drainTimeout = drainTimeout;
+        this.pollInterval = pollInterval;
         this.debug = debug;
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
@@ -54,8 +56,8 @@ public class LogzioSender  {
         debug("Created new LogzioSender class");
     }
 
-    private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue)
+    private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, int pollInterval, boolean debug, SenderStatusReporter reporter,
+                                                ScheduledExecutorService tasksExecutor, RealTimeFiltersQueue logsQueue)
             throws LogzioParameterErrorException {
         String tokenHash = Hashing.sha256()
                 .hashString(httpsRequestConfiguration.getLogzioToken(), StandardCharsets.UTF_8)
@@ -72,7 +74,7 @@ public class LogzioSender  {
                 throw new LogzioParameterErrorException("logsQueue", "null");
             }
 
-            LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
+            LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, pollInterval, debug, reporter,
                     tasksExecutor, logsQueue);
             logzioSenderInstances.put(tokenAndTypePair, logzioSender);
             return logzioSender;
@@ -92,6 +94,7 @@ public class LogzioSender  {
 
     public void start() {
         tasksExecutor.scheduleWithFixedDelay(this::drainQueueAndSend, 0, drainTimeout, TimeUnit.SECONDS);
+        tasksExecutor.scheduleWithFixedDelay(this::pollRealTimeQueries, 0, pollInterval, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -126,6 +129,10 @@ public class LogzioSender  {
         } finally {
             drainRunning.set(false);
         }
+    }
+
+    public void pollRealTimeQueries() {
+        logsQueue.setRTQueryFilters(new ArrayList<>());
     }
 
     public void send(JsonObject jsonMessage) {
@@ -202,12 +209,13 @@ public class LogzioSender  {
     public static class Builder {
         private boolean debug = false;
         private int drainTimeoutSec = 5;
+        private int pollIntervalSec = 60;
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
         private InMemoryQueue.Builder inMemoryQueueBuilder;
         private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
-        private String[] defaultFilters;
+        private String[] defaultFilters = new String[0];
 
         public Builder setDrainTimeoutSec(int drainTimeoutSec) {
             this.drainTimeoutSec = drainTimeoutSec;
@@ -266,6 +274,7 @@ public class LogzioSender  {
             return  getLogzioSender(
                     httpsRequestConfiguration,
                     drainTimeoutSec,
+                    pollIntervalSec,
                     debug,
                     reporter,
                     tasksExecutor,
@@ -273,7 +282,7 @@ public class LogzioSender  {
             );
         }
 
-        private LogsQueue getLogsQueue() throws LogzioParameterErrorException {
+        private RealTimeFiltersQueue getLogsQueue() throws LogzioParameterErrorException {
             RealTimeFiltersQueue.Builder rtfQueueBuilder = new RealTimeFiltersQueue.Builder();
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
@@ -284,9 +293,6 @@ public class LogzioSender  {
                 rtfQueueBuilder.setFilteredQueue(inMemoryQueueBuilder.build());
             }
             rtfQueueBuilder.setReporter(reporter);
-            Filter[] realTimeQueryFilters = new Filter[1];
-            realTimeQueryFilters[0] = new SimpleJQLFilterFactory();
-            rtfQueueBuilder.setRealTimeQueryFilters(realTimeQueryFilters);
             List<Filter> defaultFilters = new ArrayList<>();
             for (String strFilter : this.defaultFilters) {
                 defaultFilters.add(new SimpleJQLFilterFactory());

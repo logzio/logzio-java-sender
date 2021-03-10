@@ -10,14 +10,13 @@ import java.util.List;
 
 public class RealTimeFiltersQueue implements LogsQueue{
 
-    private Filter[] RTQueryFilters;
+    private List<Filter> RTQueryFilters;
     private List<Filter> defaultFilters;
     private LogsQueue filteredQueue;
     private SenderStatusReporter reporter;
 
 
-    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, List<Filter> defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
-        this.RTQueryFilters = realTimeQueryFilters;
+    public RealTimeFiltersQueue(List<Filter> defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
         this.defaultFilters = defaultFilters;
         this.filteredQueue = filteredQueue;
         this.reporter = reporter;
@@ -36,7 +35,10 @@ public class RealTimeFiltersQueue implements LogsQueue{
             }
         }
         return true;
+    }
 
+    public void setRTQueryFilters(List<Filter> filters) {
+        this.RTQueryFilters = filters;
     }
 
     @Override
@@ -70,15 +72,10 @@ public class RealTimeFiltersQueue implements LogsQueue{
     }
 
     public static class Builder {
-        private Filter[] RTQueryFilters = new  Filter[0];
         private List<Filter> defaultFilters = new ArrayList<>();
         private LogsQueue filteredQueue;
         private SenderStatusReporter reporter;
 
-        public RealTimeFiltersQueue.Builder setRealTimeQueryFilters(Filter[] realTimeQueryFilters) {
-            this.RTQueryFilters = realTimeQueryFilters;
-            return this;
-        }
 
         public RealTimeFiltersQueue.Builder setDefaultFilters(List<Filter> defaultFilters) {
             this.defaultFilters  = defaultFilters ;
@@ -96,7 +93,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
         }
 
         public RealTimeFiltersQueue build() {
-            return new RealTimeFiltersQueue(RTQueryFilters, defaultFilters, filteredQueue, reporter);
+            return new RealTimeFiltersQueue(defaultFilters, filteredQueue, reporter);
         }
     }
 
