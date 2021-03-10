@@ -11,11 +11,12 @@ public class RealTimeFiltersQueue implements LogsQueue{
     private Filter[] RTQueryFilters;
     private Filter[] defaultFilters;
     private InMemoryQueue filteredQueue;
-    private final SenderStatusReporter reporter;
 
-    public RealTimeFiltersQueue(InMemoryQueue filteredQueue, SenderStatusReporter reporter) {
-       this.filteredQueue = filteredQueue;
-       this.reporter = reporter;
+
+    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, InMemoryQueue filteredQueue) {
+        this.RTQueryFilters = realTimeQueryFilters;
+        this.defaultFilters = defaultFilters;
+        this.filteredQueue = filteredQueue;
     }
 
     private boolean shouldEnqueue(JsonObject log) {
@@ -25,7 +26,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
             }
         }
 
-        for (Filter RTQFilter : RTQueryFilters) {
+        for (Filter RTQFilter : defaultFilters) {
             if (RTQFilter.filter(log)) {
                 return false;
             }
@@ -57,4 +58,32 @@ public class RealTimeFiltersQueue implements LogsQueue{
     public void close() throws IOException {
         filteredQueue.close();
     }
+
+    public static class Builder {
+        private Filter[] RTQueryFilters = new  Filter[0];
+        private Filter[] defaultFilters = new  Filter[0];
+        private InMemoryQueue filteredQueue;
+
+        public RealTimeFiltersQueue.Builder setRealTimeQueryFilters(Filter[] realTimeQueryFilters) {
+            this.RTQueryFilters = realTimeQueryFilters;
+            return this;
+        }
+
+        public RealTimeFiltersQueue.Builder setDefaultFilters(Filter[] defaultFilters) {
+            this.defaultFilters  = defaultFilters ;
+            return this;
+        }
+
+        public RealTimeFiltersQueue.Builder setFilteredQueue(InMemoryQueue filteredQueue) {
+                this.filteredQueue = filteredQueue;
+        }
+
+        public RealTimeFiltersQueue build() {
+            return new RealTimeFiltersQueue(RTQueryFilters, defaultFilters,  filteredQueue);
+        }
+    }
+
+//    public static RealTimeFiltersQueue.Builder builder(LogzioSender.Builder context){
+//        return new RealTimeFiltersQueue.Builder();
+//    }
 }
