@@ -266,14 +266,19 @@ public class LogzioSender  {
         }
 
         private LogsQueue getLogsQueue() throws LogzioParameterErrorException {
+            RealTimeFiltersQueue.Builder rtfQueueBuilder = new RealTimeFiltersQueue.Builder();
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);
-                return diskQueueBuilder.build();
+                rtfQueueBuilder.setFilteredQueue(diskQueueBuilder.build());
+            } else {
+                inMemoryQueueBuilder.setReporter(reporter);
+                rtfQueueBuilder.setFilteredQueue(inMemoryQueueBuilder.build());
             }
-
-            inMemoryQueueBuilder.setReporter(reporter);
-            return inMemoryQueueBuilder.build();
+            Filter[] realTimeQueryFilters = new Filter[0];
+            realTimeQueryFilters[0] = new SimpleJQLFilterFactory();
+            rtfQueueBuilder.setRealTimeQueryFilters(realTimeQueryFilters);
+            return rtfQueueBuilder.build();
         }
     }
 
