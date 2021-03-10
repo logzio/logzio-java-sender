@@ -5,16 +5,18 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RealTimeFiltersQueue implements LogsQueue{
 
     private Filter[] RTQueryFilters;
-    private Filter[] defaultFilters;
+    private List<Filter> defaultFilters;
     private LogsQueue filteredQueue;
     private SenderStatusReporter reporter;
 
 
-    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, Filter[] defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
+    public RealTimeFiltersQueue(Filter[] realTimeQueryFilters, List<Filter> defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
         this.RTQueryFilters = realTimeQueryFilters;
         this.defaultFilters = defaultFilters;
         this.filteredQueue = filteredQueue;
@@ -69,7 +71,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
 
     public static class Builder {
         private Filter[] RTQueryFilters = new  Filter[0];
-        private Filter[] defaultFilters = new  Filter[0];
+        private List<Filter> defaultFilters = new ArrayList<>();
         private LogsQueue filteredQueue;
         private SenderStatusReporter reporter;
 
@@ -78,7 +80,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
             return this;
         }
 
-        public RealTimeFiltersQueue.Builder setDefaultFilters(Filter[] defaultFilters) {
+        public RealTimeFiltersQueue.Builder setDefaultFilters(List<Filter> defaultFilters) {
             this.defaultFilters  = defaultFilters ;
             return this;
         }
