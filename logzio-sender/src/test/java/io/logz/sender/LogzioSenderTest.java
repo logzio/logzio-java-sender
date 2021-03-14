@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -139,6 +140,9 @@ public abstract class LogzioSenderTest {
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
                 10 * 1000, 10 * 1000, tasks,false);
         testSenderBuilder.setDefaultFilters(new String[]{"$..[?(@.id)]"});
+        testSenderBuilder.setRTQueriesUrlProvider("127.0.0.1:9990/real-time-queries/search");
+        testSenderBuilder.setRTQueriesAPIToken("7381cbb6-fb96-4889-a748-86bd7245b26b");
+        testSenderBuilder.setHostname(InetAddress.getLocalHost().getHostName());
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
 
         testSender.send(json.getBytes(StandardCharsets.UTF_8));

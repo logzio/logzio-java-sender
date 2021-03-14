@@ -1,13 +1,21 @@
 package io.logz.sender;
 
 import com.google.common.hash.Hashing;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
+import io.logz.sender.model.RTQuery;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class LogzioSender  {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
@@ -33,11 +42,16 @@ public class LogzioSender  {
     private ScheduledExecutorService tasksExecutor;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsSyncSender httpsSyncSender;
-    private List<Filter> realTimeQueryFilters;
+    private List<RTFilter> realTimeQueryRTFilters;
+    private OkHttpClient httpClient;
+    private Gson gson = new Gson();
+    private String rtQueriesUrlProvider;
+    private String rtQueriesAPIToken;
+    private String hostname;
 
-    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout,  int pollInterval, boolean debug,
+    private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, int pollInterval, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         RealTimeFiltersQueue logsQueue) throws LogzioParameterErrorException {
+                         RealTimeFiltersQueue logsQueue, String rtQueriesUrlProvider, String rtQueriesAPIToken, String hostname) throws LogzioParameterErrorException {
 
         if (logsQueue == null || reporter == null || httpsRequestConfiguration == null) {
             throw new LogzioParameterErrorException("logsQueue=" + logsQueue + " reporter=" + reporter
@@ -52,12 +66,18 @@ public class LogzioSender  {
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
         this.tasksExecutor = tasksExecutor;
+        this.httpClient = new OkHttpClient.Builder().build();
+
+        this.rtQueriesUrlProvider = rtQueriesUrlProvider;
+        this.rtQueriesAPIToken = rtQueriesAPIToken;
+        this.hostname = hostname;
 
         debug("Created new LogzioSender class");
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, int pollInterval, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, RealTimeFiltersQueue logsQueue)
+                                                ScheduledExecutorService tasksExecutor, RealTimeFiltersQueue logsQueue, String rtQueriesUrlProvider,
+                                                String rtQueriesAPIToken, String hostname)
             throws LogzioParameterErrorException {
         String tokenHash = Hashing.sha256()
                 .hashString(httpsRequestConfiguration.getLogzioToken(), StandardCharsets.UTF_8)
@@ -75,7 +95,7 @@ public class LogzioSender  {
             }
 
             LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, pollInterval, debug, reporter,
-                    tasksExecutor, logsQueue);
+                    tasksExecutor, logsQueue, rtQueriesUrlProvider, rtQueriesAPIToken, hostname);
             logzioSenderInstances.put(tokenAndTypePair, logzioSender);
             return logzioSender;
         } else {
@@ -132,7 +152,39 @@ public class LogzioSender  {
     }
 
     public void pollRealTimeQueries() {
-        logsQueue.setRTQueryFilters(new ArrayList<>());
+        List<RTFilter> rtFilters = searchRTFilters();
+        logsQueue.setRTQueryFilters(rtFilters);
+    }
+
+    private List<RTFilter> searchRTFilters() {
+        List<RTQuery> rtQueries = searchRTQueries();
+        return rtQueries.stream().map(RTQuery::getQuery).map(JsonPathRTFilter::new).collect(Collectors.toList());
+    }
+
+    private List<RTQuery> searchRTQueries() {
+
+        String requestJson = "{}";
+
+        if (hostname != null) {
+            requestJson = "{\"hostname\" : \"" + hostname + "\"}";
+        }
+
+        RequestBody body = RequestBody.create(
+        MediaType.parse("application/json"), requestJson);
+
+        Request request = new Request.Builder()
+                .url("http://" + rtQueriesUrlProvider )
+                .addHeader("X-API-TOKEN", rtQueriesAPIToken)
+                .post(body)
+                .build();
+
+        try {
+            ResponseBody responseBody = httpClient.newCall(request).execute().body();
+            RTQuery[] rtQueryArray = gson.fromJson(responseBody.string(), RTQuery[].class);
+            return Arrays.asList(rtQueryArray.clone());
+        } catch (Exception e) {
+            throw new RuntimeException("failed polling real time queries");
+        }
     }
 
     public void send(JsonObject jsonMessage) {
@@ -209,13 +261,31 @@ public class LogzioSender  {
     public static class Builder {
         private boolean debug = false;
         private int drainTimeoutSec = 5;
-        private int pollIntervalSec = 60;
+        private int pollIntervalSec = 5;
         private SenderStatusReporter reporter;
         private ScheduledExecutorService tasksExecutor;
         private InMemoryQueue.Builder inMemoryQueueBuilder;
         private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
         private String[] defaultFilters = new String[0];
+        private String rtQueriesUrlProvider = "127.0.0.1:9990/real-time-queries/search";
+        private String rtQueriesAPIToken;
+        private String hostname = null;
+
+        public Builder setHostname(String hostname) {
+            this.hostname = hostname;
+            return this;
+        }
+
+        public Builder setRTQueriesUrlProvider(String url) {
+            this.rtQueriesUrlProvider = url;
+            return this;
+        }
+
+        public Builder setRTQueriesAPIToken(String token) {
+            this.rtQueriesAPIToken = token;
+            return this;
+        }
 
         public Builder setDrainTimeoutSec(int drainTimeoutSec) {
             this.drainTimeoutSec = drainTimeoutSec;
@@ -278,7 +348,10 @@ public class LogzioSender  {
                     debug,
                     reporter,
                     tasksExecutor,
-                    getLogsQueue()
+                    getLogsQueue(),
+                    rtQueriesUrlProvider,
+                    rtQueriesAPIToken,
+                    hostname
             );
         }
 
@@ -293,11 +366,13 @@ public class LogzioSender  {
                 rtfQueueBuilder.setFilteredQueue(inMemoryQueueBuilder.build());
             }
             rtfQueueBuilder.setReporter(reporter);
-            List<Filter> defaultFilters = new ArrayList<>();
-            for (String strFilter : this.defaultFilters) {
-                defaultFilters.add(new JsonPathFilter(strFilter));
+            List<RTFilter> defaultRTFilters = new ArrayList<>();
+            if (defaultFilters != null) {
+                for (String strFilter : this.defaultFilters) {
+                    defaultRTFilters.add(new JsonPathRTFilter(strFilter));
+                }
             }
-            rtfQueueBuilder.setDefaultFilters(defaultFilters);
+            rtfQueueBuilder.setDefaultFilters(defaultRTFilters);
             return rtfQueueBuilder.build();
         }
     }

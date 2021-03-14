@@ -1,8 +1,5 @@
 package io.logz.sender;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -10,35 +7,35 @@ import java.util.List;
 
 public class RealTimeFiltersQueue implements LogsQueue{
 
-    private List<Filter> RTQueryFilters = new ArrayList<>();
-    private List<Filter> defaultFilters;
+    private List<RTFilter> RTQueryRTFilters = new ArrayList<>();
+    private List<RTFilter> defaultRTFilters;
     private LogsQueue filteredQueue;
     private SenderStatusReporter reporter;
 
 
-    public RealTimeFiltersQueue(List<Filter> defaultFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
-        this.defaultFilters = defaultFilters;
+    public RealTimeFiltersQueue(List<RTFilter> defaultRTFilters, LogsQueue filteredQueue, SenderStatusReporter reporter) {
+        this.defaultRTFilters = defaultRTFilters;
         this.filteredQueue = filteredQueue;
         this.reporter = reporter;
     }
 
     private boolean shouldEnqueue(String log) {
-        for (Filter RTQFilter : RTQueryFilters) {
-            if (RTQFilter.filter(log)) {
+        for (RTFilter RTQRTFilter : RTQueryRTFilters) {
+            if (RTQRTFilter.filter(log)) {
                 return true;
             }
         }
 
-        for (Filter RTQFilter : defaultFilters) {
-            if (RTQFilter.filter(log)) {
-                return false;
+        for (RTFilter RTQRTFilter : defaultRTFilters) {
+            if (RTQRTFilter.filter(log)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
-    public void setRTQueryFilters(List<Filter> filters) {
-        this.RTQueryFilters = filters;
+    public void setRTQueryFilters(List<RTFilter> RTFilters) {
+        this.RTQueryRTFilters = RTFilters;
     }
 
     @Override
@@ -70,13 +67,13 @@ public class RealTimeFiltersQueue implements LogsQueue{
     }
 
     public static class Builder {
-        private List<Filter> defaultFilters = new ArrayList<>();
+        private List<RTFilter> defaultRTFilters = new ArrayList<>();
         private LogsQueue filteredQueue;
         private SenderStatusReporter reporter;
 
 
-        public RealTimeFiltersQueue.Builder setDefaultFilters(List<Filter> defaultFilters) {
-            this.defaultFilters  = defaultFilters ;
+        public RealTimeFiltersQueue.Builder setDefaultFilters(List<RTFilter> defaultRTFilters) {
+            this.defaultRTFilters = defaultRTFilters;
             return this;
         }
 
@@ -91,7 +88,7 @@ public class RealTimeFiltersQueue implements LogsQueue{
         }
 
         public RealTimeFiltersQueue build() {
-            return new RealTimeFiltersQueue(defaultFilters, filteredQueue, reporter);
+            return new RealTimeFiltersQueue(defaultRTFilters, filteredQueue, reporter);
         }
     }
 
