@@ -16,6 +16,13 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 </dependency>
 ```
 
+###### Installation from Gradle
+  
+If you use Gradle, add the dependency to your project as follows:
+
+```java
+implementation 'io.logz.sender:logzio-java-sender:V1.1.2'
+```
 
 ### Parameters
 | Parameter          | Default                              | Explained  |
