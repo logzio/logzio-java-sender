@@ -1,5 +1,6 @@
 package io.logz.sender;
 
+import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
@@ -10,7 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -20,6 +24,9 @@ import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
 
 public abstract class LogzioSenderTest {
     protected MockLogzioBulkListener mockListener;
+    private final static int MAX_LOG_LINE_SIZE_IN_BYTES = 32700;
+    private final static String TRUNCATED_MESSAGE_SUFFIX = "...truncated";
+    private final static String EXCEEDING_MESSAGE_FILE_PATH = "src/test/resources/exceeding_max_size_message.log";
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
@@ -382,5 +389,93 @@ public abstract class LogzioSenderTest {
 
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
+    }
+
+    @Test
+    public void checkExceedingMaxSizeJsonLogWithCut() throws LogzioParameterErrorException, IOException {
+        String token = "checkExceedingMaxSizeJsonLogWithCut";
+        String type = random(8);
+        String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
+        int drainTimeout = 2;
+
+        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
+
+        testSender.send(log);
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
+        tasks.shutdownNow();
+    }
+
+    @Test
+    public void checkExceedingMaxSizeBytesLogWithCut() throws LogzioParameterErrorException, IOException {
+        String token = "checkExceedingMaxSizeBytesLogWithCut";
+        String type = random(8);
+        String loggerName = "checkExceedingMaxSizeBytesLogWithCutName";
+        int drainTimeout = 2;
+
+        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
+
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
+        testSender.send(log.toString().getBytes(StandardCharsets.UTF_8));
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
+        tasks.shutdownNow();
+    }
+
+
+    @Test
+    public void checkExceedingMaxSizeJsonLogWithDrop() throws LogzioParameterErrorException, IOException {
+        String token = "checkExceedingMaxSizeJsonLogWithDrop";
+        String type = random(8);
+        String loggerName = "checkExceedingMaxSizeJsonLogWithDropName";
+        int drainTimeout = 2;
+
+        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"drop");
+        testSender.send(log);
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertNumberOfReceivedMsgs(0);
+        tasks.shutdownNow();
+    }
+
+    @Test
+    public void checkExceedingMaxSizeBytesLogWithDrop() throws LogzioParameterErrorException, IOException {
+        String token = "checkExceedingMaxSizeBytesLogWithDrop";
+        String type = random(8);
+        String loggerName = "checkExceedingMaxSizeBytesLogWithDropName";
+        int drainTimeout = 2;
+
+        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"drop");
+        testSender.send(log.toString().getBytes(StandardCharsets.UTF_8));
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertNumberOfReceivedMsgs(0);
+        tasks.shutdownNow();
+    }
+
+
+    private LogzioSender getLogzioSenderWithAndExceedMaxSizeAction(String token, String type, int drainTimeout, int logSize, ScheduledExecutorService tasks,
+                                                                   String exceedMaxSizeAction) throws LogzioParameterErrorException {
+        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
+                10 * 1000, tasks, false);
+        testSenderBuilder.setExceedMaxSizeAction(exceedMaxSizeAction);
+        return createLogzioSender(testSenderBuilder);
     }
 }
