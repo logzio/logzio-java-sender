@@ -4,9 +4,9 @@ import io.logz.sender.LogzioSender.Builder;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,14 +29,14 @@ public class LogzioLongRunningTests {
     private MockLogzioBulkListener mockListener;
     private ScheduledExecutorService tasks;
 
-    @Before
+    @BeforeEach
     public void preTest() throws Exception {
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
     }
 
-    @After
+    @AfterEach
     public void stopMockListener() {
         if (mockListener != null)
             mockListener.stop();

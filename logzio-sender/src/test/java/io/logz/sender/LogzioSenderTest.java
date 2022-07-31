@@ -4,9 +4,7 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +30,14 @@ public abstract class LogzioSenderTest {
     private static final int MAX_RETRIES_ATTEMPTS = 3;
     private ScheduledExecutorService tasks;
 
-    @Before
+    @BeforeEach
     public void startListenerAndExecutors() throws Exception {
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
     }
 
-    @After
+    @AfterEach
     public void stopListenerAndExecutors() {
         if (mockListener != null)
              mockListener.stop();
