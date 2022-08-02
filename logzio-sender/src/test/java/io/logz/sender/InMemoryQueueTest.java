@@ -3,7 +3,9 @@ package io.logz.sender;
 import com.google.gson.JsonObject;
 import io.logz.sender.LogzioSender.Builder;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
@@ -16,8 +18,8 @@ public class InMemoryQueueTest extends LogzioSenderTest {
 
     @Override
     protected Builder getLogzioSenderBuilder(String token, String type, Integer drainTimeout,
-                                              Integer socketTimeout, Integer serverTimeout,
-                                              ScheduledExecutorService tasks, boolean compressRequests)
+                                             Integer socketTimeout, Integer serverTimeout,
+                                             ScheduledExecutorService tasks, boolean compressRequests)
             throws LogzioParameterErrorException {
 
         Builder logzioSenderBuilder = super.getLogzioSenderBuilder(token, type, drainTimeout,
@@ -35,14 +37,14 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     private void setCapacityInBytes(Builder logzioSenderBuilder, long capacityInBytes) {
         logzioSenderBuilder
                 .withInMemoryQueue()
-                    .setCapacityInBytes(capacityInBytes)
+                .setCapacityInBytes(capacityInBytes)
                 .endInMemoryQueue();
     }
 
     private void setLogsCountLimit(Builder logzioSenderBuilder, long logsCounterLimit) {
         logzioSenderBuilder
                 .withInMemoryQueue()
-                    .setLogsCountLimit(logsCounterLimit)
+                .setLogsCountLimit(logsCounterLimit)
                 .endInMemoryQueue();
     }
 
@@ -60,14 +62,14 @@ public class InMemoryQueueTest extends LogzioSenderTest {
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
 
-        Builder testSenderBuilder = getLogzioSenderBuilder(token, type,  drainTimeout, 10 * 1000,
+        Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         setCapacityInBytes(testSenderBuilder, logSize * successfulLogs);
 
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
 
         sleepSeconds(drainTimeout - 1);
-        for(int i = 0; i <= successfulLogs; i++) {
+        for (int i = 0; i <= successfulLogs; i++) {
             testSender.send(log);
         }
 
@@ -94,14 +96,14 @@ public class InMemoryQueueTest extends LogzioSenderTest {
 
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
 
-        Builder testSenderBuilder = getLogzioSenderBuilder(token, type,  drainTimeout, 10 * 1000,
+        Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         setLogsCountLimit(testSenderBuilder, successfulLogs);
 
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
 
         sleepSeconds(drainTimeout - 1);
-        for(int i = 0; i <= successfulLogs; i++) {
+        for (int i = 0; i <= successfulLogs; i++) {
             testSender.send(log);
         }
 
@@ -114,5 +116,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
         mockListener.assertNumberOfReceivedMsgs(successfulLogs + 1);
         tasks.shutdownNow();
     }
+
+
 }
 

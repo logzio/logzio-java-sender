@@ -35,6 +35,7 @@ implementation 'io.logz.sender:logzio-java-sender:V1.1.2'
 | **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
 | **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
 | **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
+| **exceedMaxSizeAction**       | `cut`                                    | String. `cut` to truncate the message field or `drop` to drop log that exceed the allowed maximum size for logzio. If the log size exceeding the maximum size allowed after truncating the message field, the log will be dropped.|
 
 #### Parameters for in-memory queue
 | Parameter          | Default                              | Explained  |
@@ -94,9 +95,9 @@ public class LogzioSenderExample {
                         .endInMemoryQueue()
                         .build();
 
-        sender.start();
+        logzioSender.start();
         JsonObject jsonMessage = createLogMessage(); // create JsonObject to send to logz.io
-        sender.send(jsonMessage);
+        logzioSender.send(jsonMessage);
     }
 }
 ```
