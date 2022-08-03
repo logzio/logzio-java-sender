@@ -12,7 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -396,7 +396,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
         int drainTimeout = 2;
 
-        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -416,7 +416,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeBytesLogWithCutName";
         int drainTimeout = 2;
 
-        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -437,7 +437,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeJsonLogWithDropName";
         int drainTimeout = 2;
 
-        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -456,7 +456,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeBytesLogWithDropName";
         int drainTimeout = 2;
 
-        String message = Files.readString(Path.of(EXCEEDING_MESSAGE_FILE_PATH));
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
