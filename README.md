@@ -21,7 +21,7 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 If you use Gradle, add the dependency to your project as follows:
 
 ```java
-implementation 'io.logz.sender:logzio-java-sender:1.1.5'
+implementation 'io.logz.sender:logzio-java-sender:1.1.6'
 ```
 
 ### Parameters
@@ -123,6 +123,19 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.1.6
+   - replaced bigqueue dependency to a better maintained module
+ - 1.1.5
+   - dependency bumps
+   - validation and handling for oversized logs with exceedMaxSizeAction parameter
+
+<details>
+  <summary markdown="span"> Expand to check old versions </summary>
+
+ - 1.1.2
+   - LogsQueue interface is now public
+- 1.1.1
+   - bug fix
  - 1.1.0
    - remove deprecated getOrCreateSenderByType function
    - changed logzioSenderInstances Map key to hold an immutable pair of hashed token and log type
@@ -150,7 +163,7 @@ public class LogzioSenderExample {
    - Fix dependencies issue
  - 1.0.0
    - Initial release
-   
+   </details>
 
 ### Contribution
  - Fork

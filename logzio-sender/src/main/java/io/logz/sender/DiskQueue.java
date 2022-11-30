@@ -1,14 +1,15 @@
 package io.logz.sender;
 
-import com.bluejeans.common.bigqueue.BigQueue;
+import org.kairosdb.bigqueue.BigQueueImpl;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class DiskQueue implements LogsQueue {
-    private final BigQueue logsQueue;
+    private final BigQueueImpl logsQueue;
     private final File queueDirectory;
     private final boolean dontCheckEnoughDiskSpace;
     private final int fsPercentThreshold;
@@ -18,7 +19,7 @@ public class DiskQueue implements LogsQueue {
     private DiskQueue(File queueDir, boolean dontCheckEnoughDiskSpace, int fsPercentThreshold,
                       int gcPersistedQueueFilesIntervalSeconds, SenderStatusReporter reporter,
                       int checkDiskSpaceInterval, ScheduledExecutorService diskSpaceTasks)
-            throws LogzioParameterErrorException {
+            throws LogzioParameterErrorException, IOException {
 
         this.reporter = reporter;
         queueDirectory = queueDir;
@@ -26,10 +27,10 @@ public class DiskQueue implements LogsQueue {
         // divide bufferDir to dir and queue name
         String dir = queueDir.getAbsoluteFile().getParent();
         String queueNameDir = queueDir.getName();
-        if (dir == null || queueNameDir.isEmpty() ) {
+        if (dir == null || queueNameDir.isEmpty()) {
             throw new LogzioParameterErrorException("queueDir", " value is empty: " + queueDir.getAbsolutePath());
         }
-        logsQueue = new BigQueue(dir, queueNameDir);
+        logsQueue = new BigQueueImpl(dir, queueNameDir);
         this.dontCheckEnoughDiskSpace = dontCheckEnoughDiskSpace;
         this.fsPercentThreshold = fsPercentThreshold;
         this.isEnoughSpace = true;
@@ -49,13 +50,24 @@ public class DiskQueue implements LogsQueue {
     @Override
     public void enqueue(byte[] log) {
         if (isEnoughSpace) {
-            logsQueue.enqueue(log);
+            try {
+                logsQueue.enqueue(log);
+            } catch (IOException e) {
+                reporter.error("Encountered an error while enqueue", e);
+            }
         }
     }
 
     @Override
     public byte[] dequeue() {
-        return logsQueue.dequeue();
+        byte[] logs = null;
+        try {
+            logs = logsQueue.dequeue();
+        } catch (IOException e) {
+            reporter.error("Encountered an error while dequeue", e);
+        }
+
+        return logs;
     }
 
     @Override
@@ -150,13 +162,13 @@ public class DiskQueue implements LogsQueue {
             return context;
         }
 
-        DiskQueue build() throws LogzioParameterErrorException {
+        DiskQueue build() throws LogzioParameterErrorException, IOException {
             return new DiskQueue(queueDir, dontCheckEnoughDiskSpace, fsPercentThreshold,
                     gcPersistedQueueFilesIntervalSeconds, reporter, checkDiskSpaceInterval, diskSpaceTasks);
         }
     }
 
-    public static Builder builder(LogzioSender.Builder context, ScheduledExecutorService diskSpaceTasks){
+    public static Builder builder(LogzioSender.Builder context, ScheduledExecutorService diskSpaceTasks) {
         return new Builder(context, diskSpaceTasks);
     }
 }

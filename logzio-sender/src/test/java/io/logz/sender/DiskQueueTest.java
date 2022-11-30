@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -69,7 +70,7 @@ public class DiskQueueTest extends LogzioSenderTest {
                     10 * 1000, tasks, false);
             LogzioSender testSender = createLogzioSender(testSenderBuilder);
             throw new LogzioParameterErrorException("Should not reach here", "fail");
-        } catch(LogzioParameterErrorException e) {
+        } catch(LogzioParameterErrorException | IOException e) {
             assertTrue(e.getMessage().contains(tempDirectory.getAbsolutePath()));
         }
         assertTrue(tempDirectory.exists());

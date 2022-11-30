@@ -80,7 +80,7 @@ public abstract class LogzioSenderTest {
                     .setHttpsRequestConfiguration(httpsRequestConfiguration);
     }
 
-    protected LogzioSender createLogzioSender(LogzioSender.Builder logzioSenderBuilder) throws LogzioParameterErrorException {
+    protected LogzioSender createLogzioSender(LogzioSender.Builder logzioSenderBuilder) throws LogzioParameterErrorException, IOException {
         LogzioSender logzioSender = logzioSenderBuilder.build();
         logzioSender.start();
         return logzioSender;
@@ -470,7 +470,7 @@ public abstract class LogzioSenderTest {
 
 
     private LogzioSender getLogzioSenderWithAndExceedMaxSizeAction(String token, String type, int drainTimeout, int logSize, ScheduledExecutorService tasks,
-                                                                   String exceedMaxSizeAction) throws LogzioParameterErrorException {
+                                                                   String exceedMaxSizeAction) throws LogzioParameterErrorException, IOException {
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         testSenderBuilder.setExceedMaxSizeAction(exceedMaxSizeAction);
