@@ -30,8 +30,9 @@
                     <createSourcesJar>true</createSourcesJar>
                     <artifactSet>
                         <includes>
+                            <include>org.kairosdb:metrics4j</include>
+                            <include>org.kairosdb:bigqueue</include>
                             <include>com.google.guava:guava</include>
-                            <include>com.bluejeans.common:bigqueue</include>
                             <include>com.google.code.gson:gson</include>
                         </includes>
                     </artifactSet>
@@ -42,12 +43,16 @@
                             <shadedPattern>io.logz.sender.com.google.common</shadedPattern>
                         </relocation>
                         <relocation>
-                            <pattern>com.bluejeans.common.bigqueue</pattern>
-                            <shadedPattern>io.logz.sender.com.bluejeans.common.bigqueue</shadedPattern>
-                        </relocation>
-                        <relocation>
                             <pattern>com.google.gson</pattern>
                             <shadedPattern>io.logz.sender.com.google.gson</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.kairosdb.bigqueue</pattern>
+                            <shadedPattern>io.logz.sender.org.kairosdb.bigqueue</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.kairosdb.metrics4j</pattern>
+                            <shadedPattern>io.logz.sender.org.kairosdb.metrics4j</shadedPattern>
                         </relocation>
                     </relocations>
                     <filters>
@@ -73,7 +78,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.bluejeans.common</groupId>
+            <groupId>org.kairosdb</groupId>
             <artifactId>bigqueue</artifactId>
         </dependency>
         <dependency>
@@ -114,6 +119,7 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
 </project>

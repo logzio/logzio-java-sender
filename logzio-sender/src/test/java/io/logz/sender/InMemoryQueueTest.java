@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,7 +50,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     }
 
     @Test
-    public void checkCapacityReachedToSizeBelowCapacity() throws LogzioParameterErrorException {
+    public void checkCapacityReachedToSizeBelowCapacity() throws LogzioParameterErrorException, IOException {
         String token = "checkCrossCapacityInBytes";
         String type = random(8);
         String loggerName = "checkCrossCapacityInBytesName";
@@ -84,7 +85,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     }
 
     @Test
-    public void checkLogMessageCountLimitWithCapacityInBytes() throws LogzioParameterErrorException {
+    public void checkLogMessageCountLimitWithCapacityInBytes() throws LogzioParameterErrorException, IOException {
         String token = "checkLogMessageCountLimitOnly";
         String type = random(8);
         String loggerName = "checkLogMessageCountLimitOnly";

@@ -8,6 +8,7 @@ import com.google.gson.JsonSyntaxException;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.sender.exceptions.LogzioServerErrorException;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -226,7 +227,7 @@ public class LogzioSender {
         return logsList;
     }
 
-    private void drainQueue() {
+    private void drainQueue()   {
         debug("Attempting to drain queue");
         if (!logsQueue.isEmpty()) {
             while (!logsQueue.isEmpty()) {
@@ -238,7 +239,9 @@ public class LogzioSender {
                     debug("Will retry in the next interval");
 
                     // And lets return everything to the queue
-                    logsList.forEach((logMessage) -> logsQueue.enqueue(logMessage.getMessage()));
+                    logsList.forEach((logMessage) -> {
+                            logsQueue.enqueue(logMessage.getMessage());
+                    });
 
                     // Lets wait for a new interval, something is wrong in the server side
                     break;
@@ -327,7 +330,7 @@ public class LogzioSender {
             this.inMemoryQueueBuilder = inMemoryQueueBuilder;
         }
 
-        public LogzioSender build() throws LogzioParameterErrorException {
+        public LogzioSender build() throws LogzioParameterErrorException, IOException {
             return getLogzioSender(
                     httpsRequestConfiguration,
                     drainTimeoutSec,
@@ -339,7 +342,7 @@ public class LogzioSender {
             );
         }
 
-        private LogsQueue getLogsQueue() throws LogzioParameterErrorException {
+        private LogsQueue getLogsQueue() throws LogzioParameterErrorException, IOException {
             if (diskQueueBuilder != null) {
                 diskQueueBuilder.setDiskSpaceTasks(tasksExecutor);
                 diskQueueBuilder.setReporter(reporter);
