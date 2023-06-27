@@ -123,6 +123,10 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 1.1.8
+   - Fix an issue where log is not being truncated properly between size of 32.7k to 500k.
+ - 1.1.7
+   - replaced bigqueue dependency to a better maintained module
  - 1.1.7
    - replaced bigqueue dependency to a better maintained module
  - 1.1.5
