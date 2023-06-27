@@ -24,7 +24,8 @@ public abstract class LogzioSenderTest {
     protected MockLogzioBulkListener mockListener;
     private final static int MAX_LOG_LINE_SIZE_IN_BYTES = 32700;
     private final static String TRUNCATED_MESSAGE_SUFFIX = "...truncated";
-    private final static String EXCEEDING_MESSAGE_FILE_PATH = "src/test/resources/exceeding_max_size_message.log";
+    private final static String EXCEEDING_LOG_FILE_PATH = "src/test/resources/exceeding_max_size_log.log";
+    private final static String EXCEEDING_MESSAGE_FIELD_FILE_PATH = "src/test/resources/exceeding_max_size_message.log";
     private final static Logger logger = LoggerFactory.getLogger(LogzioSenderTest.class);
     private static final int INITIAL_WAIT_BEFORE_RETRY_MS = 2000;
     private static final int MAX_RETRIES_ATTEMPTS = 3;
@@ -396,7 +397,27 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
         int drainTimeout = 2;
 
-        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
+        JsonObject log = createJsonMessage(loggerName, message);
+
+        int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
+        ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
+
+        testSender.send(log);
+        sleepSeconds(2 * drainTimeout);
+        mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
+        tasks.shutdownNow();
+    }
+
+    @Test
+    public void checkExceedingMaxSizeJsonMessagFieldeWithCut() throws LogzioParameterErrorException, IOException {
+        String token = "checkExceedingMaxSizeJsonLogWithCut";
+        String type = random(8);
+        String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
+        int drainTimeout = 2;
+
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FIELD_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -416,7 +437,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeBytesLogWithCutName";
         int drainTimeout = 2;
 
-        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -437,7 +458,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeJsonLogWithDropName";
         int drainTimeout = 2;
 
-        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -456,7 +477,7 @@ public abstract class LogzioSenderTest {
         String loggerName = "checkExceedingMaxSizeBytesLogWithDropName";
         int drainTimeout = 2;
 
-        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FILE_PATH)), StandardCharsets.UTF_8);
+        String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
 
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
