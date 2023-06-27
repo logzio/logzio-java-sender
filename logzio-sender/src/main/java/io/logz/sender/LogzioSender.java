@@ -144,8 +144,8 @@ public class LogzioSender {
 
         // check for oversized message
         int jsonByteLength = jsonMessage.toString().getBytes(StandardCharsets.UTF_8).length;
-        if (jsonByteLength > MAX_LOG_SIZE_IN_BYTES) {
-            String jsonMessageField = jsonMessage.get("message").getAsString();
+        String jsonMessageField = jsonMessage.get("message").getAsString();
+        if (jsonByteLength > MAX_LOG_SIZE_IN_BYTES || jsonMessageField.length() >= MAX_LOG_LINE_SIZE_IN_BYTES) {
 
             // calculate the minimum between max log line size, and the message field after truncating the exceeding bytes
             int truncatedMessageSize = Math.min(MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length(),
@@ -227,7 +227,7 @@ public class LogzioSender {
         return logsList;
     }
 
-    private void drainQueue()   {
+    private void drainQueue() {
         debug("Attempting to drain queue");
         if (!logsQueue.isEmpty()) {
             while (!logsQueue.isEmpty()) {
@@ -240,7 +240,7 @@ public class LogzioSender {
 
                     // And lets return everything to the queue
                     logsList.forEach((logMessage) -> {
-                            logsQueue.enqueue(logMessage.getMessage());
+                        logsQueue.enqueue(logMessage.getMessage());
                     });
 
                     // Lets wait for a new interval, something is wrong in the server side
