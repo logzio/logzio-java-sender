@@ -41,8 +41,8 @@ public abstract class LogzioSenderTest {
     @AfterEach
     public void stopListenerAndExecutors() {
         if (mockListener != null)
-             mockListener.stop();
-        if (tasks != null){
+            mockListener.stop();
+        if (tasks != null) {
             tasks.shutdownNow();
         }
     }
@@ -60,25 +60,24 @@ public abstract class LogzioSenderTest {
                                                           Integer socketTimeout, Integer serverTimeout,
                                                           ScheduledExecutorService tasks,
                                                           boolean compressRequests)
-            throws LogzioParameterErrorException{
-            LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
-            HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
-                    .builder()
-                    .setCompressRequests(compressRequests)
-                    .setConnectTimeout(serverTimeout)
-                    .setSocketTimeout(socketTimeout)
-                    .setLogzioToken(token)
-                    .setLogzioType(type)
-                    .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + mockListener.getPort())
-                    .build();
-
-            return LogzioSender
-                    .builder()
-                    .setDebug(false)
-                    .setTasksExecutor(tasks)
-                    .setDrainTimeoutSec(drainTimeout)
-                    .setReporter(logy)
-                    .setHttpsRequestConfiguration(httpsRequestConfiguration);
+            throws LogzioParameterErrorException {
+        LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
+        HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
+                .builder()
+                .setCompressRequests(compressRequests)
+                .setConnectTimeout(serverTimeout)
+                .setSocketTimeout(socketTimeout)
+                .setLogzioToken(token)
+                .setLogzioType(type)
+                .setLogzioListenerUrl("http://" + mockListener.getHost() + ":" + mockListener.getPort())
+                .build();
+        return LogzioSender
+                .builder()
+                .setDebug(false)
+                .setTasksExecutor(tasks)
+                .setDrainTimeoutSec(drainTimeout)
+                .setReporter(logy)
+                .setHttpsRequestConfiguration(httpsRequestConfiguration);
     }
 
     protected LogzioSender createLogzioSender(LogzioSender.Builder logzioSenderBuilder) throws LogzioParameterErrorException, IOException {
@@ -90,7 +89,7 @@ public abstract class LogzioSenderTest {
     protected abstract void setZeroThresholdQueue(LogzioSender.Builder logzioSenderBuilder);
 
     protected String random(int numberOfChars) {
-        return UUID.randomUUID().toString().substring(0, numberOfChars-1);
+        return UUID.randomUUID().toString().substring(0, numberOfChars - 1);
     }
 
     @Test
@@ -99,18 +98,14 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "simpleAppending";
         int drainTimeout = 2;
-
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks,false);
+                10 * 1000, 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-        testSender.send( createJsonMessage(loggerName, message1));
-        testSender.send( createJsonMessage(loggerName, message2));
-        sleepSeconds(drainTimeout  *3);
-
+        testSender.send(createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message2));
+        sleepSeconds(drainTimeout * 3);
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
@@ -122,19 +117,15 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "malformedBulk";
         int drainTimeout = 1;
-
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks,false);
+                10 * 1000, 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
         testSender.send("bug".getBytes(StandardCharsets.UTF_8));
         sleepSeconds(drainTimeout * 5);
-
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
@@ -147,18 +138,14 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "simpleByteArrayAppending";
         int drainTimeout = 2;
-
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks,false);
+                10 * 1000, 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-        testSender.send( createJsonMessage(loggerName, message1).toString().getBytes(StandardCharsets.UTF_8));
-        testSender.send( createJsonMessage(loggerName, message2).toString().getBytes(StandardCharsets.UTF_8));
-        sleepSeconds(drainTimeout  *3);
-
+        testSender.send(createJsonMessage(loggerName, message1).toString().getBytes(StandardCharsets.UTF_8));
+        testSender.send(createJsonMessage(loggerName, message2).toString().getBytes(StandardCharsets.UTF_8));
+        sleepSeconds(drainTimeout * 3);
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
@@ -170,18 +157,14 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "simpleGzipAppending";
         int drainTimeout = 2;
-
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000,  tasks,  true);
+                10 * 1000, tasks, true);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-        testSender.send( createJsonMessage(loggerName, message1));
-        testSender.send( createJsonMessage(loggerName, message2));
-        sleepSeconds(drainTimeout  *3);
-
+        testSender.send(createJsonMessage(loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message2));
+        sleepSeconds(drainTimeout * 3);
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
@@ -193,23 +176,17 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "multipleQueueDrains";
         int drainTimeout = 2;
-
         String message1 = "Testing first drain - " + random(5);
         String message2 = "And the second drain" + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-        testSender.send(createJsonMessage( loggerName, message1));
+        testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
-
         testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
     }
@@ -220,20 +197,15 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "longDrainTimeout";
         int drainTimeout = 10;
-
         String message1 = "Sending one log - " + random(5);
         String message2 = "And one more important one - " + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
-
         mockListener.assertNumberOfReceivedMsgs(0);
         sleepSeconds(drainTimeout + 1);
-
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
@@ -249,12 +221,10 @@ public abstract class LogzioSenderTest {
         tempDirectoryThatWillBeInTheSameFsAsTheQueue.deleteOnExit();
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeoutSec, 10 * 1000,
                 10 * 1000, tasks, false);
         setZeroThresholdQueue(testSenderBuilder);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         // verify the thread that checks for space made at least one check
         sleepSeconds(2 * drainTimeoutSec);
         testSender.send(createJsonMessage(loggerName, message1));
@@ -270,35 +240,23 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "serverCrash";
         int drainTimeout = 1;
-
         String message1 = "Log before drop - " + random(5);
         String message2 = "Log during drop - " + random(5);
         String message3 = "Log after drop - " + random(5);
-
-        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type,  drainTimeout, 10 * 1000,
+        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         testSender.send(createJsonMessage(loggerName, message1));
-
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
-
         mockListener.stop();
-
         testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1); // haven't changed - still 1
-
         mockListener.start();
-
         testSender.send(createJsonMessage(loggerName, message3));
-
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(3);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
         mockListener.assertLogReceivedIs(message3, token, type, loggerName, LOGLEVEL);
@@ -311,38 +269,24 @@ public abstract class LogzioSenderTest {
         String loggerName = "getTimeoutFromServer";
         int drainTimeout = 1;
         int serverTimeout = 2000;
-
         String message1 = "Log that will be sent - " + random(5);
         String message2 = "Log that would timeout and then being re-sent - " + random(5);
-
         int socketTimeout = serverTimeout / 2;
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, socketTimeout,
                 serverTimeout, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         testSender.send(createJsonMessage(loggerName, message1));
-
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
-
         mockListener.setTimeoutMillis(serverTimeout);
         mockListener.setServerTimeoutMode(true);
-
         testSender.send(createJsonMessage(loggerName, message2));
-
         sleepSeconds((socketTimeout / 1000) * MAX_RETRIES_ATTEMPTS + retryTotalDelay());
-
         mockListener.assertNumberOfReceivedMsgs(1); // Stays the same
-
         mockListener.setServerTimeoutMode(false);
-
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(2);
-
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
     }
 
@@ -354,7 +298,6 @@ public abstract class LogzioSenderTest {
             sleepBetweenRetry *= 2;
         }
         return totalSleepTime;
-
     }
 
     @Test
@@ -363,29 +306,21 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "getExceptionFromServer";
         int drainTimeout = 1;
-
-        String message1 = "Log that will be sent - " +  random(5);
+        String message1 = "Log that will be sent - " + random(5);
         String message2 = "Log that would get exception and be sent again - " + random(5);
-
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
                 10 * 1000, tasks, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1);
         mockListener.assertLogReceivedIs(message1, token, type, loggerName, LOGLEVEL);
         mockListener.setFailWithServerError(true);
-
         testSender.send(createJsonMessage(loggerName, message2));
         sleepSeconds(2 * drainTimeout);
-
         mockListener.assertNumberOfReceivedMsgs(1); // Haven't changed
         mockListener.setFailWithServerError(false);
-
         Thread.sleep(drainTimeout * 1000 * 2);
-
         mockListener.assertNumberOfReceivedMsgs(2);
         mockListener.assertLogReceivedIs(message2, token, type, loggerName, LOGLEVEL);
     }
@@ -396,14 +331,11 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
         int drainTimeout = 2;
-
         String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
-
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
-        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
-
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks, "cut");
         testSender.send(log);
         sleepSeconds(2 * drainTimeout);
         mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
@@ -416,14 +348,11 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "checkExceedingMaxSizeJsonLogWithCutName";
         int drainTimeout = 2;
-
         String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_MESSAGE_FIELD_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
-
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
-        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
-
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks, "cut");
         testSender.send(log);
         sleepSeconds(2 * drainTimeout);
         mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
@@ -436,20 +365,16 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "checkExceedingMaxSizeBytesLogWithCutName";
         int drainTimeout = 2;
-
         String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
-
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
-
-        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"cut");
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks, "cut");
         testSender.send(log.toString().getBytes(StandardCharsets.UTF_8));
         sleepSeconds(2 * drainTimeout);
         mockListener.assertLogReceivedByMessage(message.substring(0, MAX_LOG_LINE_SIZE_IN_BYTES - TRUNCATED_MESSAGE_SUFFIX.length()) + TRUNCATED_MESSAGE_SUFFIX);
         tasks.shutdownNow();
     }
-
 
     @Test
     public void checkExceedingMaxSizeJsonLogWithDrop() throws LogzioParameterErrorException, IOException {
@@ -457,13 +382,11 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "checkExceedingMaxSizeJsonLogWithDropName";
         int drainTimeout = 2;
-
         String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
-
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
-        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"drop");
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks, "drop");
         testSender.send(log);
         sleepSeconds(2 * drainTimeout);
         mockListener.assertNumberOfReceivedMsgs(0);
@@ -476,19 +399,16 @@ public abstract class LogzioSenderTest {
         String type = random(8);
         String loggerName = "checkExceedingMaxSizeBytesLogWithDropName";
         int drainTimeout = 2;
-
         String message = new String(Files.readAllBytes(Paths.get(EXCEEDING_LOG_FILE_PATH)), StandardCharsets.UTF_8);
         JsonObject log = createJsonMessage(loggerName, message);
-
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(1);
-        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks,"drop");
+        LogzioSender testSender = getLogzioSenderWithAndExceedMaxSizeAction(token, type, drainTimeout, logSize, tasks, "drop");
         testSender.send(log.toString().getBytes(StandardCharsets.UTF_8));
         sleepSeconds(2 * drainTimeout);
         mockListener.assertNumberOfReceivedMsgs(0);
         tasks.shutdownNow();
     }
-
 
     private LogzioSender getLogzioSenderWithAndExceedMaxSizeAction(String token, String type, int drainTimeout, int logSize, ScheduledExecutorService tasks,
                                                                    String exceedMaxSizeAction) throws LogzioParameterErrorException, IOException {
