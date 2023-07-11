@@ -14,5 +14,4 @@ public class LogzioTestSenderUtil {
         obj.addProperty("logger", loggerName);
         return obj;
     }
-
 }

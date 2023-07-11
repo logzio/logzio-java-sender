@@ -63,6 +63,11 @@ public class InMemoryQueue implements LogsQueue {
         return logsBuffer.isEmpty();
     }
 
+    @Override
+    public void clear() {
+        logsBuffer.clear();
+    }
+
     private boolean isEnoughSpace() {
         if (!dontCheckEnoughMemorySpace && size >= capacityInBytes) {
             reporter.warning(String.format("Logz.io: Dropping logs - we crossed the memory threshold of %d MB",

@@ -123,19 +123,21 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 2.0.0 - **THIS IS A SNAPSHOT RELEASE - SUPPORTED WITH JDK 11 AND ABOVE** 
+   - Replaced `BigQueue` module:
+      - Fixes an issue where DiskQueue was not clearing disk space when using JDK 11 and above.
+      - Added `clear()` to `LogzioSender` - enables to clear the disk/in memory queue on demand.
  - 1.1.8
    - Fix an issue where log is not being truncated properly between size of 32.7k to 500k.
- - 1.1.7
-   - replaced bigqueue dependency to a better maintained module
+
+
+<details>
+  <summary markdown="span"> Expand to check old versions </summary>
  - 1.1.7
    - replaced bigqueue dependency to a better maintained module
  - 1.1.5
    - dependency bumps
    - validation and handling for oversized logs with exceedMaxSizeAction parameter
-
-<details>
-  <summary markdown="span"> Expand to check old versions </summary>
-
  - 1.1.2
    - LogsQueue interface is now public
 - 1.1.1

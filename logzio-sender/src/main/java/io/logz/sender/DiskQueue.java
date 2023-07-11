@@ -1,6 +1,6 @@
 package io.logz.sender;
 
-import org.kairosdb.bigqueue.BigQueueImpl;
+import org.ikasan.bigqueue.BigQueueImpl;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 
 import java.io.File;
@@ -102,6 +102,10 @@ public class DiskQueue implements LogsQueue {
             // We cant throw anything out, or the task will stop, so just swallow all
             reporter.error("Uncaught error from BigQueue.gc()", e);
         }
+    }
+
+    public void clear() throws IOException {
+        logsQueue.removeAll();
     }
 
     @Override

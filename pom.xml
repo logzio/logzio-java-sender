@@ -7,7 +7,7 @@
     <groupId>io.logz.sender</groupId>
     <artifactId>logzio-java-sender</artifactId>
     <packaging>pom</packaging>
-    <version>1.1.8</version>
+    <version>2.0.0</version>
 
     <name>Logz.io Logs Sender</name>
     <description>Send your log messages to your logz.io account in an encrypted, non-blocking manner.</description>
@@ -22,8 +22,8 @@
 
     <developers>
         <developer>
-            <name>Roi Rav-Hon</name>
-            <email>roi@logz.io</email>
+            <name>Tamir Michaeli</name>
+            <email>tamir.michaeli@logz.io</email>
             <organization>Logz.io</organization>
             <organizationUrl>http://logz.io</organizationUrl>
         </developer>
@@ -35,6 +35,13 @@
         <url>https://github.com/logzio/logzio-java-sender</url>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>ikasaneip-snapshots</id>
+            <name>Ikasan EIP Snapshot Repository</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
     <modules>
         <module>logzio-sender-test</module>
         <module>logzio-sender</module>
@@ -47,8 +54,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>11</source>
+                    <target>11</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -130,9 +137,9 @@
                 <version>1.6.4</version>
             </dependency>
             <dependency>
-                <groupId>org.kairosdb</groupId>
+                <groupId>org.ikasan</groupId>
                 <artifactId>bigqueue</artifactId>
-                <version>1.0.3</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
 
         </dependencies>

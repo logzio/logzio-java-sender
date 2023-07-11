@@ -140,6 +140,10 @@ public class LogzioSender {
         }
     }
 
+    public void clearQueue() throws IOException {
+        this.logsQueue.clear();
+    }
+
     public void send(JsonObject jsonMessage) {
 
         // check for oversized message
