@@ -123,6 +123,8 @@ public class LogzioSenderExample {
 
 
 ### Release notes
+ - 2.0.1
+   - Add `User-Agent` header with logz.io information
  - 2.0.0 - **THIS IS A SNAPSHOT RELEASE - SUPPORTED WITH JDK 11 AND ABOVE** 
    - Replaced `BigQueue` module:
       - Fixes an issue where DiskQueue was not clearing disk space when using JDK 11 and above.

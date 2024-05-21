@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
 public class HttpsSyncSender {
@@ -106,11 +107,9 @@ public class HttpsSyncSender {
             if (errorMessage != null) {
                 reporter.warning(errorMessage);
             }
-        }
-        else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+        } else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
             reporter.error("Logz.io: Got forbidden! Your token is not right. Unfortunately, dropping logs. Message: " + responseMessage);
-        }
-        else if (responseCode == HttpURLConnection.HTTP_OK) {
+        } else if (responseCode == HttpURLConnection.HTTP_OK) {
             reporter.info("Successfully sent bulk to logz.io, size: " + payload.length);
         } else {
             retry = true;
@@ -140,19 +139,28 @@ public class HttpsSyncSender {
     }
 
     private HttpURLConnection sendRequest(byte[] payload) throws IOException {
+        String logzAgent = "version-not-found";
         HttpURLConnection conn = (HttpURLConnection) configuration.getLogzioListenerUrl().openConnection();
-        conn.setRequestMethod(configuration.getRequestMethod());
-        conn.setRequestProperty("Content-length", String.valueOf(payload.length));
-        conn.setRequestProperty("Content-Type", "text/plain");
-        if (configuration.isCompressRequests()) {
-            conn.setRequestProperty("Content-Encoding", "gzip");
-        }
-        conn.setReadTimeout(configuration.getSocketTimeout());
-        conn.setConnectTimeout(configuration.getConnectTimeout());
-        conn.setDoOutput(true);
-        conn.setDoInput(true);
 
-        conn.getOutputStream().write(payload);
+        try {
+            final Properties properties = new Properties();
+            properties.load(HttpsSyncSender.class.getClassLoader().getResourceAsStream("project.properties"));
+            logzAgent = String.format("java/%s/logs", properties.getProperty("logzSenderVersion"));
+        } finally {
+            conn.setRequestMethod(configuration.getRequestMethod());
+            conn.setRequestProperty("Content-length", String.valueOf(payload.length));
+            conn.setRequestProperty("Content-Type", "text/plain");
+            conn.setRequestProperty("User-Agent", logzAgent);
+            if (configuration.isCompressRequests()) {
+                conn.setRequestProperty("Content-Encoding", "gzip");
+            }
+            conn.setReadTimeout(configuration.getSocketTimeout());
+            conn.setConnectTimeout(configuration.getConnectTimeout());
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            conn.getOutputStream().write(payload);
+        }
         return conn;
     }
 
