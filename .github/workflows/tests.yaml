@@ -19,5 +19,7 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
+      - name: Install Dependencies
+        run: mvn clean install
       - name: Test with Maven
         run: mvn test
