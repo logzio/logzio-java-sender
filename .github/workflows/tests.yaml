@@ -19,8 +19,7 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
-          overwrite-settings: true
       - name: Install Dependencies
-        run: mvn clean install
+        run: mvn clean install -Dgpg.skip=true
       - name: Test with Maven
-        run: mvn test
+        run: mvn test -Dgpg.skip=true
