@@ -5,7 +5,7 @@ on:
     type: [published]
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Get the code
@@ -14,12 +14,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 11
-          distribution: 'temurin'
-          gpg-private-key: ${{ secrets.GPG_KEY }}
-          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          distribution: 'zulu'
           server_id: ossrh-nexus
-          server-username: ${{ secrets.MVN_USERNAME }}
-          server-password: ${{ secrets.MVN_PASSWORD }}
       - name: Publish to the Maven Central Repository
         run: mvn --batch-mode deploy
         env:
