@@ -62,6 +62,8 @@ public abstract class LogzioSenderTest {
                                                           boolean compressRequests)
             throws LogzioParameterErrorException {
         LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
+        String test = mockListener.getHost();
+        System.out.println("NAAMA TEST: " + test);
         HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
                 .builder()
                 .setCompressRequests(compressRequests)
