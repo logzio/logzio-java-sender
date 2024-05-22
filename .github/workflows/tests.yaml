@@ -14,4 +14,4 @@ jobs:
           java-version: 11
           distribution: 'zulu'
       - name: Test with Maven
-        run: mvn test
+        run: mvn test -e

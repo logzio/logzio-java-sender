@@ -113,9 +113,13 @@ public class MockLogzioBulkListener implements Closeable {
     }
 
     private String findLocalHost() {
+        String localHost;
         try {
-            return InetAddress.getLocalHost().getHostAddress();
+            localHost = InetAddress.getLocalHost().getHostAddress();
+            logger.debug("Server localHost is " + localHost);
+            return localHost;
         } catch (UnknownHostException e) {
+            logger.info("Failed to find localhost address, returning " + LISTENER_ADDRESS);
             return LISTENER_ADDRESS;
         }
     }
