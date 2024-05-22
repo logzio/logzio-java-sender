@@ -33,7 +33,6 @@ public abstract class LogzioSenderTest {
 
     @BeforeEach
     public void startListenerAndExecutors() throws Exception {
-        System.out.println("NAAMA TEST 1: is this executed");
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
