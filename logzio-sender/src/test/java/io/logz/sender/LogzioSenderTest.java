@@ -33,6 +33,7 @@ public abstract class LogzioSenderTest {
 
     @BeforeEach
     public void startListenerAndExecutors() throws Exception {
+        System.out.println("NAAMA TEST 1: is this executed");
         mockListener = new MockLogzioBulkListener();
         mockListener.start();
         tasks = Executors.newScheduledThreadPool(3);
@@ -62,8 +63,10 @@ public abstract class LogzioSenderTest {
                                                           boolean compressRequests)
             throws LogzioParameterErrorException {
         LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
+        System.out.println("NAAMA TEST 2: is this logged");
+        logger.info("NAAMA TEST 2.5: is this logged");
         String test = mockListener.getHost();
-        System.out.println("NAAMA TEST: " + test);
+        System.out.println("NAAMA TEST 3: " + test);
         HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
                 .builder()
                 .setCompressRequests(compressRequests)
