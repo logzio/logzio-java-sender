@@ -19,10 +19,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.BindException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -59,7 +57,7 @@ public class MockLogzioBulkListener implements Closeable {
     }
 
     public MockLogzioBulkListener() throws IOException {
-        this.host = findLocalHost();
+        this.host = LISTENER_ADDRESS;
         this.port = findFreePort();
         server = new Server(new InetSocketAddress(host, port));
         server.setHandler(new AbstractHandler() {
@@ -109,18 +107,6 @@ public class MockLogzioBulkListener implements Closeable {
             return br.lines();
         } else {
             return request.getReader().lines();
-        }
-    }
-
-    private String findLocalHost() {
-        String localHost;
-        try {
-            localHost = InetAddress.getLocalHost().getHostAddress();
-            logger.debug("Server localHost is " + localHost);
-            return localHost;
-        } catch (UnknownHostException e) {
-            logger.info("Failed to find localhost address, returning " + LISTENER_ADDRESS);
-            return LISTENER_ADDRESS;
         }
     }
 

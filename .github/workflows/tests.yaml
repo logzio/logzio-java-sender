@@ -13,5 +13,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
+      - name: Install dependencies
+        run: mvn clean install
       - name: Test with Maven
-        run: mvn test -e
+        run: mvn test
