@@ -19,8 +19,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.BindException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -34,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class MockLogzioBulkListener implements Closeable {
     private final static Logger logger = LoggerFactory.getLogger(MockLogzioBulkListener.class);
-    private static final String LISTENER_ADDRESS = "127.0.0.1";
+    private static final String LISTENER_ADDRESS = "localhost";
 
     private Server server;
     private Queue<LogRequest> logRequests = new ConcurrentLinkedQueue<>();
@@ -57,7 +59,7 @@ public class MockLogzioBulkListener implements Closeable {
     }
 
     public MockLogzioBulkListener() throws IOException {
-        this.host = LISTENER_ADDRESS;
+        this.host = findLocalHost();
         this.port = findFreePort();
         server = new Server(new InetSocketAddress(host, port));
         server.setHandler(new AbstractHandler() {
@@ -107,6 +109,14 @@ public class MockLogzioBulkListener implements Closeable {
             return br.lines();
         } else {
             return request.getReader().lines();
+        }
+    }
+
+    private String findLocalHost() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            return LISTENER_ADDRESS;
         }
     }
 
