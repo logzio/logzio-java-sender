@@ -16,8 +16,11 @@ jobs:
           java-version: 11
           distribution: 'zulu'
           server_id: ossrh-nexus
+          server-username: ${{ secrets.OSSRH_USERNAME }}
+          server-password: ${{ secrets.OSSRH_PASSWORD }}
+          gpg-private-key: ${{ secrets.GPG_KEY }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Verify the pom.xml
+        run: mvn verify
       - name: Publish to the Maven Central Repository
-        run: mvn --batch-mode deploy
-        env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        run: mvn clean deploy
