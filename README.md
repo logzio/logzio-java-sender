@@ -121,8 +121,20 @@ public class LogzioSenderExample {
 ```
 
 
+## Build and test locally
+1. Clone the repository:
+  ```bash
+  git clone https://github.com/logzio/logzio-java-sender.git
+  cd logzio-java-sender
+  ```
+2. Build and run tests:
+  ```bash
+  mvn clean compile
+  mvn test
+  ```
 
-### Release notes
+
+## Release notes
  - 2.0.1
    - Add `User-Agent` header with logz.io information
  - 2.0.0 - **THIS IS A SNAPSHOT RELEASE - SUPPORTED WITH JDK 11 AND ABOVE** 
