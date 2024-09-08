@@ -122,12 +122,12 @@ public class LogzioSenderExample {
 
 
 ## Build and test locally
-1. clone the repository:
+1. Clone the repository:
   ```bash
   git clone https://github.com/logzio/logzio-java-sender.git
   cd logzio-java-sender
   ```
-2. build and run tests:
+2. Build and run tests:
   ```bash
   mvn clean compile
   mvn test
