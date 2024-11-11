@@ -15,7 +15,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
-          server_id: ossrh-nexus
+          server-id: ossrh-nexus
           server-username: ${{ secrets.OSSRH_USERNAME }}
           server-password: ${{ secrets.OSSRH_PASSWORD }}
           gpg-private-key: ${{ secrets.GPG_KEY }}
