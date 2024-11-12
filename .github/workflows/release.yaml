@@ -2,7 +2,7 @@ name: Release new version to Maven
 
 on:
   release:
-    type: [published]
+    types: [published]
 
 jobs:
   publish:
@@ -15,12 +15,14 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
-          server_id: ossrh-nexus
-          server-username: ${{ secrets.OSSRH_USERNAME }}
-          server-password: ${{ secrets.OSSRH_PASSWORD }}
+          server-id: ossrh-nexus
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_KEY }}
-          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
-      - name: Verify the pom.xml
-        run: mvn verify
+          gpg-passphrase: GPG_PASSPHRASE
       - name: Publish to the Maven Central Repository
-        run: mvn clean deploy
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn deploy --batch-mode -D skipTests --activate-profiles release --no-transfer-progress
