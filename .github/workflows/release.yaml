@@ -20,12 +20,12 @@ jobs:
           server-password: ${{ secrets.OSSRH_PASSWORD }}
           gpg-private-key: ${{ secrets.GPG_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
-      - name: Create settings-security.xml
-        run: |
-          echo '<settingsSecurity>' > ~/.m2/settings-security.xml
-          echo "  <master>${{ secrets.MVN_MASTER_PASSWORD }}</master>" >> ~/.m2/settings-security.xml
-          echo '</settingsSecurity>' >> ~/.m2/settings-security.xml
+#      - name: Create settings-security.xml
+#        run: |
+#          echo '<settingsSecurity>' > ~/.m2/settings-security.xml
+#          echo "  <master>${{ secrets.MVN_MASTER_PASSWORD }}</master>" >> ~/.m2/settings-security.xml
+#          echo '</settingsSecurity>' >> ~/.m2/settings-security.xml
       - name: Verify the pom.xml
         run: mvn verify
       - name: Publish to the Maven Central Repository
-        run: mvn clean deploy
+        run: mvn deploy --batch-mode -D skipTests --activate-profiles release --no-transfer-progress
