@@ -4,6 +4,12 @@ import com.google.gson.JsonObject;
 import io.logz.sender.exceptions.LogzioParameterErrorException;
 import io.logz.test.MockLogzioBulkListener;
 import io.logz.test.TestEnvironment;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+
+
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +23,16 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+
 import static io.logz.sender.LogzioTestSenderUtil.LOGLEVEL;
 import static io.logz.sender.LogzioTestSenderUtil.createJsonMessage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class LogzioSenderTest {
     protected MockLogzioBulkListener mockListener;
@@ -90,6 +104,57 @@ public abstract class LogzioSenderTest {
 
     protected String random(int numberOfChars) {
         return UUID.randomUUID().toString().substring(0, numberOfChars - 1);
+    }
+
+    /**
+     * Initializes the OpenTelemetry SDK with a logging span exporter and the W3C Trace Context
+     * propagator.
+     *
+     * @return A ready-to-use {@link OpenTelemetry} instance.
+     */
+    protected OpenTelemetry initOpenTelemetry() {
+        SdkTracerProvider sdkTracerProvider =
+                SdkTracerProvider.builder()
+                        .build();
+
+        OpenTelemetrySdk sdk =
+                OpenTelemetrySdk.builder()
+                        .setTracerProvider(sdkTracerProvider)
+                        .build();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(sdkTracerProvider::close));
+        return sdk;
+    }
+    @Test
+    public void testOpenTelemetryContextInjection() throws Exception {
+        OpenTelemetry openTelemetry = initOpenTelemetry();
+        // Set up OpenTelemetry tracer
+        Tracer tracer = openTelemetry.getTracer("test");
+        // Start a new span
+        Span span = tracer.spanBuilder("test").setSpanKind(SpanKind.CLIENT).startSpan();
+        // Activate the span
+        try (Scope scope = span.makeCurrent()) {
+            String token = "testToken";
+            String type = "testType";
+            int drainTimeout = 2;
+            LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
+                    10 * 1000, 10 * 1000, tasks, false);
+            LogzioSender testSender = createLogzioSender(testSenderBuilder);
+
+            JsonObject jsonMessage = createJsonMessage("testLogger", "Test message");
+
+            testSender.send(jsonMessage);
+
+            assertTrue(jsonMessage.has("trace_id"));
+            assertTrue(jsonMessage.has("span_id"));
+            assertTrue(jsonMessage.has("service_name"));
+            assertEquals(span.getSpanContext().getTraceId(), jsonMessage.get("trace_id").getAsString());
+            assertEquals(span.getSpanContext().getSpanId(), jsonMessage.get("span_id").getAsString());
+            assertEquals("your-service-name", jsonMessage.get("service_name").getAsString()); // Replace with your actual service name
+        } finally {
+            // End the span
+            span.end();
+        }
     }
 
     @Test
