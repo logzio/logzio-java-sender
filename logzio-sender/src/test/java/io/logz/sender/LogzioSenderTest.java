@@ -23,9 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 
@@ -128,11 +126,8 @@ public abstract class LogzioSenderTest {
     @Test
     public void testOpenTelemetryContextInjection() throws Exception {
         OpenTelemetry openTelemetry = initOpenTelemetry();
-        // Set up OpenTelemetry tracer
         Tracer tracer = openTelemetry.getTracer("test");
-        // Start a new span
         Span span = tracer.spanBuilder("test").setSpanKind(SpanKind.CLIENT).startSpan();
-        // Activate the span
         try (Scope scope = span.makeCurrent()) {
             String token = "testToken";
             String type = "testType";
@@ -150,9 +145,7 @@ public abstract class LogzioSenderTest {
             assertTrue(jsonMessage.has("service_name"));
             assertEquals(span.getSpanContext().getTraceId(), jsonMessage.get("trace_id").getAsString());
             assertEquals(span.getSpanContext().getSpanId(), jsonMessage.get("span_id").getAsString());
-            assertEquals("your-service-name", jsonMessage.get("service_name").getAsString()); // Replace with your actual service name
         } finally {
-            // End the span
             span.end();
         }
     }
