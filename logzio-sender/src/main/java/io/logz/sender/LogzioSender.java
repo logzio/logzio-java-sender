@@ -18,8 +18,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.sdk.resources.Resource;
 
 public class LogzioSender {
     private static final int MAX_SIZE_IN_BYTES = 3 * 1024 * 1024;  // 3 MB
@@ -104,6 +106,20 @@ public class LogzioSender {
         }
     }
 
+    private void addOpenTelemetryContext(JsonObject jsonMessage) {
+        Span currentSpan = Span.current();
+        if (currentSpan != null) {
+            SpanContext spanContext = currentSpan.getSpanContext();
+            if (spanContext.isValid()) {
+                jsonMessage.addProperty("trace_id", spanContext.getTraceId());
+                jsonMessage.addProperty("span_id", spanContext.getSpanId());
+                Resource resource = Resource.getDefault();
+                Attributes attributes = resource.getAttributes();
+                String serviceName = attributes.get(io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_NAME);
+                jsonMessage.addProperty("service_name", serviceName);
+            }
+        }
+    }
     public void start() {
         tasksExecutor.scheduleWithFixedDelay(this::drainQueueAndSend, 0, drainTimeout, TimeUnit.SECONDS);
     }
@@ -147,16 +163,7 @@ public class LogzioSender {
     }
 
     public void send(JsonObject jsonMessage) {
-        // Extract OpenTelemetry context
-        Span currentSpan = Span.current();
-        if (currentSpan != null) {
-            SpanContext spanContext = currentSpan.getSpanContext();
-            if (spanContext.isValid()) {
-                jsonMessage.addProperty("trace_id", spanContext.getTraceId());
-                jsonMessage.addProperty("span_id", spanContext.getSpanId());
-                jsonMessage.addProperty("service_name", "your-service-name"); // Replace with your actual service name
-            }
-        }
+        addOpenTelemetryContext(jsonMessage);
         // check for oversized message
         int jsonByteLength = jsonMessage.toString().getBytes(StandardCharsets.UTF_8).length;
         String jsonMessageField = jsonMessage.get("message").getAsString();
