@@ -71,7 +71,7 @@ public abstract class LogzioSenderTest {
     protected LogzioSender.Builder getLogzioSenderBuilder(String token, String type, Integer drainTimeout,
                                                           Integer socketTimeout, Integer serverTimeout,
                                                           ScheduledExecutorService tasks,
-                                                          boolean compressRequests)
+                                                          boolean compressRequests, boolean withOpentelemetryContext)
             throws LogzioParameterErrorException {
         LogzioTestStatusReporter logy = new LogzioTestStatusReporter(logger);
         HttpsRequestConfiguration httpsRequestConfiguration = HttpsRequestConfiguration
@@ -86,6 +86,7 @@ public abstract class LogzioSenderTest {
         return LogzioSender
                 .builder()
                 .setDebug(false)
+                .setWithOpentelemetryContext(withOpentelemetryContext)
                 .setTasksExecutor(tasks)
                 .setDrainTimeoutSec(drainTimeout)
                 .setReporter(logy)
@@ -133,7 +134,7 @@ public abstract class LogzioSenderTest {
             String type = "testType";
             int drainTimeout = 2;
             LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                    10 * 1000, 10 * 1000, tasks, false);
+                    10 * 1000, 10 * 1000, tasks, false, true);
             LogzioSender testSender = createLogzioSender(testSenderBuilder);
 
             JsonObject jsonMessage = createJsonMessage("testLogger", "Test message");
@@ -159,7 +160,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks, false);
+                10 * 1000, 10 * 1000, tasks, false,false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
@@ -178,7 +179,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks, false);
+                10 * 1000, 10 * 1000, tasks, false,false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
@@ -199,7 +200,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks, false);
+                10 * 1000, 10 * 1000, tasks, false,false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1).toString().getBytes(StandardCharsets.UTF_8));
         testSender.send(createJsonMessage(loggerName, message2).toString().getBytes(StandardCharsets.UTF_8));
@@ -218,7 +219,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing.." + random(5);
         String message2 = "Warning test.." + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, true);
+                10 * 1000, tasks, true,false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
@@ -237,7 +238,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Testing first drain - " + random(5);
         String message2 = "And the second drain" + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
@@ -258,7 +259,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Sending one log - " + random(5);
         String message2 = "And one more important one - " + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         testSender.send(createJsonMessage(loggerName, message2));
@@ -280,7 +281,7 @@ public abstract class LogzioSenderTest {
         String message1 = "First log that will be dropped - " + random(5);
         String message2 = "And a second drop - " + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeoutSec, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         setZeroThresholdQueue(testSenderBuilder);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         // verify the thread that checks for space made at least one check
@@ -302,7 +303,7 @@ public abstract class LogzioSenderTest {
         String message2 = "Log during drop - " + random(5);
         String message3 = "Log after drop - " + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
@@ -331,7 +332,7 @@ public abstract class LogzioSenderTest {
         String message2 = "Log that would timeout and then being re-sent - " + random(5);
         int socketTimeout = serverTimeout / 2;
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, socketTimeout,
-                serverTimeout, tasks, false);
+                serverTimeout, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
@@ -367,7 +368,7 @@ public abstract class LogzioSenderTest {
         String message1 = "Log that will be sent - " + random(5);
         String message2 = "Log that would get exception and be sent again - " + random(5);
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         sleepSeconds(2 * drainTimeout);
@@ -471,7 +472,7 @@ public abstract class LogzioSenderTest {
     private LogzioSender getLogzioSenderWithAndExceedMaxSizeAction(String token, String type, int drainTimeout, int logSize, ScheduledExecutorService tasks,
                                                                    String exceedMaxSizeAction) throws LogzioParameterErrorException, IOException {
         LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         testSenderBuilder.setExceedMaxSizeAction(exceedMaxSizeAction);
         return createLogzioSender(testSenderBuilder);
     }

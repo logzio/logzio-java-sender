@@ -27,9 +27,9 @@ public class DiskQueueTest extends LogzioSenderTest {
     protected Builder getLogzioSenderBuilder(String token, String type, Integer drainTimeout,
                                              Integer socketTimeout, Integer serverTimeout,
                                              ScheduledExecutorService tasks,
-                                             boolean compressRequests) throws LogzioParameterErrorException {
+                                             boolean compressRequests, boolean withOpentelemetryContext) throws LogzioParameterErrorException {
         Builder logzioSenderBuilder = super.getLogzioSenderBuilder(token, type, drainTimeout,
-                socketTimeout, serverTimeout, tasks, compressRequests);
+                socketTimeout, serverTimeout, tasks, compressRequests, withOpentelemetryContext);
 
         if (queueDir == null) {
             queueDir = TestEnvironment.createTempDirectory();
@@ -70,7 +70,7 @@ public class DiskQueueTest extends LogzioSenderTest {
         try {
             setQueueDir(tempDirectory);
             Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                    10 * 1000, tasks, false);
+                    10 * 1000, tasks, false, false);
             LogzioSender testSender = createLogzioSender(testSenderBuilder);
             throw new LogzioParameterErrorException("Should not reach here", "fail");
         } catch (LogzioParameterErrorException | IOException e) {
@@ -95,7 +95,7 @@ public class DiskQueueTest extends LogzioSenderTest {
         assertFalse(queueDir.exists());
         setQueueDir(queueDir);
         Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks, false);
+                10 * 1000, 10 * 1000, tasks, false, false);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         testSender.send(createJsonMessage(loggerName, message1));
         assertTrue(queueDir.exists());
