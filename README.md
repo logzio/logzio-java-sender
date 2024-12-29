@@ -21,36 +21,37 @@ This appender uses [BigQueue](https://github.com/bulldog2011/bigqueue) implement
 If you use Gradle, add the dependency to your project as follows:
 
 ```java
-implementation 'io.logz.sender:logzio-java-sender:2.0.0'
+implementation 'io.logz.sender:logzio-java-sender:${logzio-sender-version}'
 ```
 
 ### Parameters
-| Parameter          | Default                              | Explained  |
-| ------------------ | ------------------------------------ | ----- |
-| **token**              | *None*                                 | Your Logz.io token, which can be found under "settings" in your account.
-| **logzioType**               | *java*                                 | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender |
-| **drainTimeoutSec**       | *5*                                    | How often the sender should drain the queue (in seconds) |
-| **logzioUrl**          | *https://listener.logz.io:8071*           | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.
-| **socketTimeout**       | *10 * 1000*                                    | The socket timeout during log shipment |
-| **connectTimeout**       | *10 * 1000*                                    | The connection timeout during log shipment |
-| **debug**       | *false*                                    | Print some debug messages to stdout to help to diagnose issues |
-| **compressRequests**       | *false*                                    | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed. |
-| **exceedMaxSizeAction**       | `cut`                                    | String. `cut` to truncate the message field or `drop` to drop log that exceed the allowed maximum size for logzio. If the log size exceeding the maximum size allowed after truncating the message field, the log will be dropped.|
+| Parameter                    | Default                         | Explained                                                                                                                                                                                                                          |
+|------------------------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **token**                    | *None*                          | Your Logz.io token, which can be found under "settings" in your account.                                                                                                                                                           |
+| **logzioType**               | *java*                          | The [log type](http://support.logz.io/support/solutions/articles/6000103063-what-is-type-) for that sender                                                                                                                         |
+| **drainTimeoutSec**          | *5*                             | How often the sender should drain the queue (in seconds)                                                                                                                                                                           |
+| **logzioUrl**                | *https://listener.logz.io:8071* | Logz.io URL, that can be found under "Log Shipping -> Libraries" in your account.                                                                                                                                                  |
+| **socketTimeout**            | *10 * 1000*                     | The socket timeout during log shipment                                                                                                                                                                                             |
+| **connectTimeout**           | *10 * 1000*                     | The connection timeout during log shipment                                                                                                                                                                                         |
+| **debug**                    | *false*                         | Print some debug messages to stdout to help to diagnose issues                                                                                                                                                                     |
+| **compressRequests**         | *false*                         | Boolean. `true` if logs are compressed in gzip format before sending. `false` if logs are sent uncompressed.                                                                                                                       |
+| **exceedMaxSizeAction**      | `cut`                           | String. `cut` to truncate the message field or `drop` to drop log that exceed the allowed maximum size for logzio. If the log size exceeding the maximum size allowed after truncating the message field, the log will be dropped. |
+| **withOpentelemetryContext** | `true`                          | Boolean. Add trace_id, span_id, service_name fields to logs when opentelemetry context is available.                                                                                                                               |                               
 
 #### Parameters for in-memory queue
-| Parameter          | Default                              | Explained  |
-| ------------------ | ------------------------------------ | ----- |
-| **inMemoryQueueCapacityInBytes**       | *1024 * 1024 * 100*                                | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.|
-| **logsCountLimit**       | *-1*                                | The number of logs in the memory queue before dropping new logs. Default value is -1 (the sender will not limit the queue by logs count)|
+| Parameter                        | Default             | Explained                                                                                                                                |
+|----------------------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| **inMemoryQueueCapacityInBytes** | *1024 * 1024 * 100* | The amount of memory(bytes) we are allowed to use for the memory queue. If the value is -1 the sender will not limit the queue size.     |
+| **logsCountLimit**               | *-1*                | The number of logs in the memory queue before dropping new logs. Default value is -1 (the sender will not limit the queue by logs count) |
 
 
 #### Parameters for disk queue
-| Parameter          | Default                              | Explained  |
-| ------------------ | ------------------------------------ | ----- |
-| **queueDir**          | *None*                                   | Where the sender should store the queue. It should be at least one folder in path.|
-| **fileSystemFullPercentThreshold** | *98*                                   | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
-| **gcPersistedQueueFilesIntervalSeconds**       | *30*                                    | How often the disk queue should clean sent logs from disk |
-| **checkDiskSpaceInterval**       | *1000*                                | How often the should disk queue check for space (in milliseconds) |
+| Parameter                                | Default | Explained                                                                                                                                                                                                                                                                                        |
+|------------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **queueDir**                             | *None*  | Where the sender should store the queue. It should be at least one folder in path.                                                                                                                                                                                                               |
+| **fileSystemFullPercentThreshold**       | *98*    | The percent of used file system space at which the sender will stop queueing. When we will reach that percentage, the file system in which the queue is stored will drop all new logs until the percentage of used space drops below that threshold. Set to -1 to never stop processing new logs |
+| **gcPersistedQueueFilesIntervalSeconds** | *30*    | How often the disk queue should clean sent logs from disk                                                                                                                                                                                                                                        |
+| **checkDiskSpaceInterval**               | *1000*  | How often the should disk queue check for space (in milliseconds)                                                                                                                                                                                                                                |
 
 
 
@@ -135,8 +136,10 @@ public class LogzioSenderExample {
 
 
 ## Release notes
-- 2.1.0
-    - Upgrade packages versions
+- 2.2.0
+    - Add `WithOpentelemetryContext` parameter to add `trace_id`, `span_id`, `service_name` fields to logs when opentelemetry context is available.
+ - 2.1.0
+   - Upgrade packages versions
  - 2.0.1
    - Add `User-Agent` header with logz.io information
  - 2.0.0 - **THIS IS A SNAPSHOT RELEASE - SUPPORTED WITH JDK 11 AND ABOVE** 
