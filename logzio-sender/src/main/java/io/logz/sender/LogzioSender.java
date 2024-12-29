@@ -41,10 +41,11 @@ public class LogzioSender {
     private ScheduledExecutorService tasksExecutor;
     private final AtomicBoolean drainRunning = new AtomicBoolean(false);
     private final HttpsSyncSender httpsSyncSender;
+    private final boolean withOpentelemetryContext;
 
     private LogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug,
                          SenderStatusReporter reporter, ScheduledExecutorService tasksExecutor,
-                         LogsQueue logsQueue, String exceedMaxSizeAction) throws LogzioParameterErrorException {
+                         LogsQueue logsQueue, String exceedMaxSizeAction, boolean withOpentelemetryContext) throws LogzioParameterErrorException {
 
         if (logsQueue == null || reporter == null || httpsRequestConfiguration == null) {
             throw new LogzioParameterErrorException("logsQueue=" + logsQueue + " reporter=" + reporter
@@ -59,6 +60,7 @@ public class LogzioSender {
         this.reporter = reporter;
         httpsSyncSender = new HttpsSyncSender(httpsRequestConfiguration, reporter);
         this.tasksExecutor = tasksExecutor;
+        this.withOpentelemetryContext = withOpentelemetryContext;
         debug("Created new LogzioSender class");
     }
 
@@ -71,7 +73,7 @@ public class LogzioSender {
     }
 
     private static LogzioSender getLogzioSender(HttpsRequestConfiguration httpsRequestConfiguration, int drainTimeout, boolean debug, SenderStatusReporter reporter,
-                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue, String exceedMaxSizeAction)
+                                                ScheduledExecutorService tasksExecutor, LogsQueue logsQueue, String exceedMaxSizeAction, boolean withOpentelemetryContext)
             throws LogzioParameterErrorException {
         String tokenHash = Hashing.sha256()
                 .hashString(httpsRequestConfiguration.getLogzioToken(), StandardCharsets.UTF_8)
@@ -89,7 +91,7 @@ public class LogzioSender {
             }
 
             LogzioSender logzioSender = new LogzioSender(httpsRequestConfiguration, drainTimeout, debug, reporter,
-                    tasksExecutor, logsQueue, exceedMaxSizeAction);
+                    tasksExecutor, logsQueue, exceedMaxSizeAction, withOpentelemetryContext);
             logzioSenderInstances.put(tokenAndTypePair, logzioSender);
             return logzioSender;
         } else {
@@ -163,7 +165,9 @@ public class LogzioSender {
     }
 
     public void send(JsonObject jsonMessage) {
-        addOpenTelemetryContext(jsonMessage);
+        if (this.withOpentelemetryContext) {
+            addOpenTelemetryContext(jsonMessage);
+        }
         // check for oversized message
         int jsonByteLength = jsonMessage.toString().getBytes(StandardCharsets.UTF_8).length;
         String jsonMessageField = jsonMessage.get("message").getAsString();
@@ -298,6 +302,12 @@ public class LogzioSender {
         private DiskQueue.Builder diskQueueBuilder;
         private HttpsRequestConfiguration httpsRequestConfiguration;
         private String exceedMaxSizeAction = "cut";
+        private boolean withOpentelemetryContext = true;
+
+        public Builder setWithOpentelemetryContext(boolean withOpentelemetryContext) {
+            this.withOpentelemetryContext = withOpentelemetryContext;
+            return this;
+        }
 
         public Builder setExceedMaxSizeAction(String exceedMaxSizeAction) {
             this.exceedMaxSizeAction = exceedMaxSizeAction;
@@ -360,7 +370,8 @@ public class LogzioSender {
                     reporter,
                     tasksExecutor,
                     getLogsQueue(),
-                    exceedMaxSizeAction
+                    exceedMaxSizeAction,
+                    withOpentelemetryContext
             );
         }
 
