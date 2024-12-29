@@ -136,8 +136,8 @@ public class LogzioSenderExample {
 
 
 ## Release notes
-- 2.2.0
-    - Add `WithOpentelemetryContext` parameter to add `trace_id`, `span_id`, `service_name` fields to logs when opentelemetry context is available.
+ - 2.2.0
+   - Add `WithOpentelemetryContext` parameter to add `trace_id`, `span_id`, `service_name` fields to logs when opentelemetry context is available.
  - 2.1.0
    - Upgrade packages versions
  - 2.0.1
