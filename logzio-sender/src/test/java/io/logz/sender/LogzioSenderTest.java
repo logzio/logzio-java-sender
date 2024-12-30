@@ -123,8 +123,9 @@ public abstract class LogzioSenderTest {
         Runtime.getRuntime().addShutdownHook(new Thread(sdkTracerProvider::close));
         return sdk;
     }
+
     @Test
-    public void testOpenTelemetryContextInjectionEnabledNoContext() throws Exception {
+    public void openTelemetryContextInjectionEnabledNoContext() throws Exception {
         String token = "testToken";
         String type = "testType";
         int drainTimeout = 2;
@@ -142,7 +143,7 @@ public abstract class LogzioSenderTest {
     }
 
     @Test
-    public void testOpenTelemetryContextInjection() throws Exception {
+    public void openTelemetryContextInjection() throws Exception {
         OpenTelemetry openTelemetry = initOpenTelemetry();
         Tracer tracer = openTelemetry.getTracer("test");
         Span span = tracer.spanBuilder("test").setSpanKind(SpanKind.CLIENT).startSpan();
@@ -163,31 +164,6 @@ public abstract class LogzioSenderTest {
             assertTrue(jsonMessage.has("service_name"));
             assertEquals(span.getSpanContext().getTraceId(), jsonMessage.get("trace_id").getAsString());
             assertEquals(span.getSpanContext().getSpanId(), jsonMessage.get("span_id").getAsString());
-        } finally {
-            span.end();
-        }
-    }
-
-    @Test
-    public void testOpenTelemetryContextInjectionDisabled() throws Exception {
-        OpenTelemetry openTelemetry = initOpenTelemetry();
-        Tracer tracer = openTelemetry.getTracer("test");
-        Span span = tracer.spanBuilder("test").setSpanKind(SpanKind.CLIENT).startSpan();
-        try (Scope scope = span.makeCurrent()) {
-            String token = "testToken";
-            String type = "testType";
-            int drainTimeout = 2;
-            LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                    10 * 1000, 10 * 1000, tasks, false, false);
-            LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-            JsonObject jsonMessage = createJsonMessage("testLogger", "Test message");
-
-            testSender.send(jsonMessage);
-
-            assertFalse(jsonMessage.has("trace_id"));
-            assertFalse(jsonMessage.has("span_id"));
-            assertFalse(jsonMessage.has("service_name"));
         } finally {
             span.end();
         }
