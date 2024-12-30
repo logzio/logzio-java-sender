@@ -20,10 +20,10 @@ public class InMemoryQueueTest extends LogzioSenderTest {
     @Override
     protected Builder getLogzioSenderBuilder(String token, String type, Integer drainTimeout,
                                              Integer socketTimeout, Integer serverTimeout,
-                                             ScheduledExecutorService tasks, boolean compressRequests)
+                                             ScheduledExecutorService tasks, boolean compressRequests, boolean withOpentelemetryContext)
             throws LogzioParameterErrorException {
         Builder logzioSenderBuilder = super.getLogzioSenderBuilder(token, type, drainTimeout,
-                socketTimeout, serverTimeout, tasks, compressRequests);
+                socketTimeout, serverTimeout, tasks, compressRequests, withOpentelemetryContext);
         setCapacityInBytes(logzioSenderBuilder, defaultCapacityInBytes);
         return logzioSenderBuilder;
     }
@@ -59,7 +59,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
         int logSize = log.toString().getBytes(StandardCharsets.UTF_8).length;
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
         Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         setCapacityInBytes(testSenderBuilder, logSize * successfulLogs);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         sleepSeconds(drainTimeout - 1);
@@ -87,7 +87,7 @@ public class InMemoryQueueTest extends LogzioSenderTest {
         JsonObject log = createJsonMessage(loggerName, message);
         ScheduledExecutorService tasks = Executors.newScheduledThreadPool(3);
         Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout, 10 * 1000,
-                10 * 1000, tasks, false);
+                10 * 1000, tasks, false, false);
         setLogsCountLimit(testSenderBuilder, successfulLogs);
         LogzioSender testSender = createLogzioSender(testSenderBuilder);
         sleepSeconds(drainTimeout - 1);
