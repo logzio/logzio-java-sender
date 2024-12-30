@@ -124,6 +124,24 @@ public abstract class LogzioSenderTest {
         return sdk;
     }
     @Test
+    public void testOpenTelemetryContextInjectionEnabledNoContext() throws Exception {
+        String token = "testToken";
+        String type = "testType";
+        int drainTimeout = 2;
+        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
+                10 * 1000, 10 * 1000, tasks, false, true);
+        LogzioSender testSender = createLogzioSender(testSenderBuilder);
+
+        JsonObject jsonMessage = createJsonMessage("testLogger", "Test message");
+
+        testSender.send(jsonMessage);
+
+        assertFalse(jsonMessage.has("trace_id"));
+        assertFalse(jsonMessage.has("span_id"));
+        assertFalse(jsonMessage.has("service_name"));
+    }
+
+    @Test
     public void testOpenTelemetryContextInjection() throws Exception {
         OpenTelemetry openTelemetry = initOpenTelemetry();
         Tracer tracer = openTelemetry.getTracer("test");
@@ -173,23 +191,6 @@ public abstract class LogzioSenderTest {
         } finally {
             span.end();
         }
-    }
-    @Test
-    public void testOpenTelemetryContextInjectionEnabledNoContext() throws Exception {
-        String token = "testToken";
-        String type = "testType";
-        int drainTimeout = 2;
-        LogzioSender.Builder testSenderBuilder = getLogzioSenderBuilder(token, type, drainTimeout,
-                10 * 1000, 10 * 1000, tasks, false, true);
-        LogzioSender testSender = createLogzioSender(testSenderBuilder);
-
-        JsonObject jsonMessage = createJsonMessage("testLogger", "Test message");
-
-        testSender.send(jsonMessage);
-
-        assertFalse(jsonMessage.has("trace_id"));
-        assertFalse(jsonMessage.has("span_id"));
-        assertFalse(jsonMessage.has("service_name"));
     }
 
     @Test
