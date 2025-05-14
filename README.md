@@ -136,11 +136,9 @@ public class LogzioSenderExample {
 
 
 ## Release notes
-- 3.0.0
+- 2.3.0
     - Upgraded `logzio-sender-test` to use Jetty 12 with Servlet EE9 environment.
-    - Dropped support for Java 11 — Java 17 or higher is now required.
     - Upgrade dependencies.
-    - Migrated artifact publishing from OSSRH to Central Portal.
  - 2.2.0
    - Add `WithOpentelemetryContext` parameter to add `trace_id`, `span_id`, `service_name` fields to logs when opentelemetry context is available.
  - 2.1.0
