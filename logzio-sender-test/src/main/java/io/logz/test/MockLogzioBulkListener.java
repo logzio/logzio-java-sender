@@ -4,15 +4,16 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee9.servlet.ServletHolder;
 import org.eclipse.jetty.io.RuntimeIOException;
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -60,14 +61,15 @@ public class MockLogzioBulkListener implements Closeable {
         this.host = LISTENER_ADDRESS;
         this.port = findFreePort();
         server = new Server(new InetSocketAddress(host, port));
-        server.setHandler(new AbstractHandler() {
+        ServletContextHandler ctx = new ServletContextHandler();
+        ctx.addServlet(new ServletHolder(new HttpServlet() {
             @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException{
+            protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
                 logger.debug("got request with query string: {} ({})", request.getQueryString(), this);
                 if (isServerTimeoutMode) {
                     try {
                         Thread.sleep(timeoutMillis);
-                        baseRequest.setHandled(true);
+                        response.setStatus(HttpServletResponse.SC_OK);
                         return;
                     }
                     catch (InterruptedException e) {
@@ -80,21 +82,20 @@ public class MockLogzioBulkListener implements Closeable {
                         if (raiseExceptionOnLog) {
                             throw new RuntimeException();
                         }
-
                         String queryString = request.getQueryString();
                         LogRequest tmpRequest = new LogRequest(queryString, line);
                         logRequests.add(tmpRequest);
                         logger.debug("got log: {} ", line);
                     });
                     logger.debug("Total number of logRequests {} ({})", logRequests.size(), logRequests);
+                    response.setStatus(HttpServletResponse.SC_OK);
                 } catch (IllegalArgumentException e) {
                     malformedLogs++;
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                } finally {
-                    baseRequest.setHandled(true);
                 }
             }
-        });
+        }), "/*");
+        server.setHandler(ctx);
         logger.info("Created a mock listener ("+this+")");
     }
 
