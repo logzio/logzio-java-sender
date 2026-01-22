@@ -136,6 +136,8 @@ public class LogzioSenderExample {
 
 
 ## Release notes
+- 2.4.0
+    - Update dependencies
 - 2.3.0
     - Upgraded `logzio-sender-test` to use Jetty 12 with Servlet EE9 environment.
     - Upgrade dependencies.
