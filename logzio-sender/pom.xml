@@ -10,6 +10,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>logzio-sender</artifactId>
+    <name>Logz.io Sender</name>
+    <description>Send your log messages to your logz.io account in an encrypted, non-blocking manner.</description>
     <repositories>
         <repository>
             <id>central-portal-snapshots</id>

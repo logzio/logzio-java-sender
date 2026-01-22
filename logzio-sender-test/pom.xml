@@ -10,6 +10,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>logzio-sender-test</artifactId>
+    <name>Logz.io Sender Test Utilities</name>
+    <description>Test utilities for logzio-sender.</description>
 
     <build>
         <plugins>
