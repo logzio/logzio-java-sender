@@ -71,22 +71,17 @@ public class LogzioE2ETest {
         assertNotNull(logzioToken, "LOGZIO_TOKEN environment variable is required");
         assertNotNull(logzioApiKey, "LOGZIO_API_KEY environment variable is required");
         
-        // 1. Send test logs
         String testMessage = "E2E test log message - " + envId;
         sendTestLogs(testMessage);
         
-        // 2. Wait for ingestion
         logger.info("Waiting {} seconds for log ingestion...", INGESTION_WAIT_SECONDS);
         TimeUnit.SECONDS.sleep(INGESTION_WAIT_SECONDS);
         
-        // 3. Query Logz.io API and validate
         JsonArray logs = queryLogsWithRetry();
         
-        // 4. Validate logs
         assertNotNull(logs, "Should receive logs from Logz.io API");
         assertTrue(logs.size() > 0, "Should have at least one log entry");
         
-        // Validate required fields in first log
         JsonObject firstLog = logs.get(0).getAsJsonObject();
         assertTrue(firstLog.has("message"), "Log should have 'message' field");
         assertTrue(firstLog.has("@timestamp"), "Log should have '@timestamp' field");
@@ -125,7 +120,6 @@ public class LogzioE2ETest {
             
             sender.start();
             
-            // Send multiple test logs
             for (int i = 1; i <= 3; i++) {
                 JsonObject log = new JsonObject();
                 log.addProperty("message", testMessage + " - log #" + i);
@@ -186,14 +180,14 @@ public class LogzioE2ETest {
             conn.setRequestProperty("X-API-TOKEN", logzioApiKey);
             conn.setDoOutput(true);
             
-            // Build search request
             JsonObject request = new JsonObject();
             JsonObject queryObj = new JsonObject();
-            queryObj.addProperty("query_string", query);
+            JsonObject queryStringObj = new JsonObject();
+            queryStringObj.addProperty("query", query);
+            queryObj.add("query_string", queryStringObj);
             request.add("query", queryObj);
             request.addProperty("from", 0);
             request.addProperty("size", 100);
-            request.addProperty("sort", "@timestamp:desc");
             
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = request.toString().getBytes(StandardCharsets.UTF_8);
