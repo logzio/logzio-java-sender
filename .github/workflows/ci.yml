@@ -1,0 +1,91 @@
+name: CI
+
+permissions:
+  contents: read
+  
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  test:
+    name: Test (Java ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [17, 21]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'zulu'
+          cache: maven
+
+      - name: Run tests with coverage
+        run: mvn test jacoco:report --batch-mode --no-transfer-progress
+
+      - name: Upload coverage report
+        if: matrix.java == 17
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: logzio-sender/target/site/jacoco/
+          retention-days: 7
+
+  e2e-integration:
+    name: E2E Integration Tests
+    needs: [test]
+    runs-on: ubuntu-latest
+    env:
+      LOGZIO_TOKEN: ${{ secrets.LOGZIO_TOKEN }}
+      LOGZIO_API_KEY: ${{ secrets.LOGZIO_API_KEY }}
+      LOGZIO_API_URL: ${{ secrets.LOGZIO_API_URL }}
+      ENV_ID: e2e-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+          cache: maven
+
+      - name: Build project
+        run: mvn package -DskipTests --batch-mode --no-transfer-progress
+
+      - name: Run E2E tests
+        if: env.LOGZIO_TOKEN != ''
+        run: mvn test -Dtest=LogzioE2ETest -pl logzio-sender --batch-mode --no-transfer-progress
+
+      - name: Skip E2E (no secrets)
+        if: env.LOGZIO_TOKEN == ''
+        run: echo "⚠️ E2E tests skipped - LOGZIO_TOKEN secret not configured"
+
+  ci-success:
+    name: CI Success
+    needs: [test, e2e-integration]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "❌ Test job failed"
+            exit 1
+          fi
+          if [[ "${{ needs.e2e-integration.result }}" != "success" ]]; then
+            echo "❌ E2E integration job failed"
+            exit 1
+          fi
+          echo "✅ All CI jobs passed successfully"
+
