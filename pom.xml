@@ -112,24 +112,24 @@
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.11.3</version>
+                        <version>6.0.2</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-engine</artifactId>
-                        <version>1.11.3</version>
+                        <version>6.0.2</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-suite</artifactId>
-                        <version>1.11.3</version>
+                        <version>6.0.2</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.12</version>
+                <version>0.8.14</version>
                 <executions>
                     <execution>
                         <goals>
@@ -159,7 +159,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.3.1-jre</version>
+                <version>33.5.0-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.gson</groupId>
@@ -169,23 +169,23 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.26.3</version>
+                <version>3.27.7</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
-                <version>5.11.3</version>
+                <version>6.0.2</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-suite-api</artifactId>
-                <version>1.11.3</version>
+                <version>6.0.2</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
-                <version>12.0.21</version>
+                <version>12.1.6</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -205,7 +205,7 @@
             <dependency>
                 <groupId>org.eclipse.jetty.ee9</groupId>
                 <artifactId>jetty-ee9-servlet</artifactId>
-                <version>12.0.21</version>
+                <version>12.1.6</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.servlet</groupId>
