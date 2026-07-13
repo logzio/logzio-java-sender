@@ -112,17 +112,17 @@
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-engine</artifactId>
-                        <version>6.1.1</version>
+                        <version>6.1.2</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-engine</artifactId>
-                        <version>6.1.1</version>
+                        <version>6.1.2</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-suite</artifactId>
-                        <version>6.1.1</version>
+                        <version>6.1.2</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -174,18 +174,18 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
-                <version>6.1.1</version>
+                <version>6.1.2</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-suite-api</artifactId>
-                <version>6.1.1</version>
+                <version>6.1.2</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
-                <version>12.1.10</version>
+                <version>12.1.11</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -205,7 +205,7 @@
             <dependency>
                 <groupId>org.eclipse.jetty.ee9</groupId>
                 <artifactId>jetty-ee9-servlet</artifactId>
-                <version>12.1.10</version>
+                <version>12.1.11</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.servlet</groupId>
