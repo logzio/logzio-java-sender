@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee9.servlet.ServletHolder;
-import org.eclipse.jetty.io.RuntimeIOException;
+import java.io.UncheckedIOException;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +146,7 @@ public class MockLogzioBulkListener implements Closeable {
             }
             attempts++;
             if (attempts > 10) {
-                throw new RuntimeIOException("Failed to start after multiple attempts");
+                throw new UncheckedIOException(new IOException("Failed to start after multiple attempts"));
             }
         }
         logger.info("Started listening on {}:{} ({})", host, port, this);
@@ -169,7 +169,7 @@ public class MockLogzioBulkListener implements Closeable {
             }
             attempts++;
             if (attempts > 10) {
-                throw new RuntimeIOException("Failed to stop after multiple attempts");
+                throw new UncheckedIOException(new IOException("Failed to stop after multiple attempts"));
             }
         }
         logger.info("Stopped listening on {}:{} ({})", host, port, this);
