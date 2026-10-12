@@ -40,11 +40,17 @@ public class TestEnvironment {
                 +buildDirSubString+" in the following classpath: "+classPath));
 
         try {
-            FileAttribute<Set<PosixFilePermission>> fileAttributes = PosixFilePermissions.asFileAttribute(EnumSet
-                    .of(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE,
-                            GROUP_READ, GROUP_EXECUTE, GROUP_WRITE,
-                            OTHERS_EXECUTE, OTHERS_READ, OTHERS_WRITE));
-            return Files.createTempDirectory(buildDir.toPath(), "", fileAttributes).toFile();
+            boolean isPosixSupported = java.nio.file.FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
+
+            if (isPosixSupported) {
+                FileAttribute<Set<PosixFilePermission>> fileAttributes = PosixFilePermissions.asFileAttribute(EnumSet
+                        .of(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE,
+                                GROUP_READ, GROUP_EXECUTE, GROUP_WRITE,
+                                OTHERS_EXECUTE, OTHERS_READ, OTHERS_WRITE));
+                return Files.createTempDirectory(buildDir.toPath(), "", fileAttributes).toFile();
+            } else {
+                return Files.createTempDirectory(buildDir.toPath(), "").toFile();
+            }
         } catch (IOException e) {
             throw new RuntimeException("Failed creating temp directory in "+buildDir.getAbsolutePath(), e);
         }
